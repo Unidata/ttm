@@ -44,10 +44,10 @@ a TTM function may be recursive and may be defined as the result
 of the invocation of a sequence of other function calls.
 
 Functions are either ''built-in'' or user defined. A large number of built-in
-functions exist and are defined in the TTM reference manual.
+functions exist and are defined in the
+[TTM reference manual](https://github.com/Unidata/ttm/blob/master/ttm_batch_processing_pr_08.pdf).
 
-https://github.com/Unidata/ttm/blob/master/ttm_batch_processing_pr_08.pdf
 # External Links
-* [https://github.com/Unidata/ttm] A reference implementation of TTM] on [[github]].
-* [https://github.com/Unidata/ttm/blob/master/ttm_interpretive_language_pr_07.pdf|Caine, S.H. and Gordon, E.K., TTM: An Experimental Interpretive Language. California Institute of Technology, Willis H. Booth Computing Center, Programming Report No. 7, 1968.]
-* [https://github.com/Unidata/ttm/blob/master/ttm_batch_processing_pr_08.pdf|Caine, S.H. and Gordon, E.K., TTM: A Macro Language for Batch Processing. California Institute of Technology, Willis H. Booth Computing Center, Programming Report No. 8 May, 1969.]
+* [A reference implementation of TTM.](https://github.com/Unidata/ttm)
+* [Caine, S.H. and Gordon, E.K., TTM: An Experimental Interpretive Language. California Institute of Technology, Willis H. Booth Computing Center, Programming Report No. 7, 1968.](https://github.com/Unidata/ttm/blob/master/ttm_interpretive_language_pr_07.pdf)
+* [Caine, S.H. and Gordon, E.K., TTM: A Macro Language for Batch Processing. California Institute of Technology, Willis H. Booth Computing Center, Programming Report No. 8 May, 1969.](https://github.com/Unidata/ttm/blob/master/ttm_batch_processing_pr_08.pdf)
