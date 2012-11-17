@@ -8,7 +8,7 @@ ttm
 [-d <i>string</i>]
 [-D <i>name=string</i>]
 [-e <i>string</i>]
-[-f <i>programfile</i>]
+[-f <i>inputfile</i>]
 [-i]
 [-I <i>directory</i>]
 [-o <i>file</i>]
@@ -48,7 +48,7 @@ Scan the string and execute any macro invocations. Any output
 left after execution is discarded.
 <p><dt><b>-f <i>inputfile</i></b><br>
 <dd>
-Specify the main ttm file to execute.
+Specify the input file to execute.
 Note that this is not the same as the file
 specified by the -r flag.
 <p><dt><b>-i</i></b><br>
@@ -103,7 +103,7 @@ Specify arguments that are accessible using the <i>#&lt;argv&gt;</i> function.
 
 <h2>OVERALL OPERATION</h2>
 The <b>ttm</b> macro processor
-scans the input/program file and executes any macro invocations encountered.
+scans the input file and executes any macro invocations encountered.
 If no file is specified or if file is '-', standard input is read.
 Note that in this latter case, all of standard input will be read
 up to EOF and then processing will commence.
@@ -663,11 +663,11 @@ by Steven H. Caine and E. Kent Gordon.
 <h2>REFERENCES</h2>
 <ol>
 <li> Caine, S.H. and Gordon, E.K.,
-<a href="https://github.com/Unidata/ttm/ttm_interpretive_language_pr_07.pdf">
+<a href="https://github.com/Unidata/ttm/blob/master/ttm_interpretive_language_pr_07.pdf">
 TTM: An Experimental Interpretive Language.</a>
 California Institute of Technology, Willis H. Booth Computing Center, Programming Report No. 7, 1968.
 <li> Caine, S.H. and Gordon, E.K.,
-<a href="https://github.com/Unidata/ttm/ttm_batch_processing_pr_08.pdf">TTM: A Macro Language for Batch Processing.</a>
+<a href="https://github.com/Unidata/ttm/blog/master/ttm_batch_processing_pr_08.pdf">TTM: A Macro Language for Batch Processing.</a>
 California Institute of Technology, Willis H. Booth Computing Center, Programming Report No. 8 May, 1969.
 <li> Farber, D. J., 635 Assembly System - GAP. Bell Telephone Laboratories Computation Center (1964).
 <li>Strachey, C., A General Purpose Macro Generator. Comput J 8, 3(1965), pp. 225-241.</ref>.
