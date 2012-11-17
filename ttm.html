@@ -1,0 +1,689 @@
+<html>
+<body>
+<h2>TTM</h2>
+<h2>NAME</h2>
+ttm - macro processor
+<h2>SYNOPSIS</h2>
+ttm
+[-d <i>string</i>]
+[-D <i>name=string</i>]
+[-e <i>string</i>]
+[-f <i>programfile</i>]
+[-i]
+[-I <i>directory</i>]
+[-o <i>file</i>]
+[-r <i>rsfile</i>]
+[-S <i>positive-integer</i>]
+[-V]
+[-X <i>tag=value</i>]
+[--]
+[<i>file</i>]
+[<i>arg...</i>]
+
+<h2>DESCRIPTION</h2
+<b>TTM</b> (or <b>ttm</b>)
+is a string oriented, general purpose macro processing
+developed in 1968 by Steven H. Caine and E. Kent Gordon at the California Institute of Technology.
+
+The following description is taken from the original TTM reference manual[1].
+TTM Is a recursive, interpretive language designed primarily
+for string manipulation, text editing, macro definition and
+expansion, and other applications generally classified as
+systems programming. It is derived, primarily, from
+GAP [3] and GPM [4].
+
+<h2>OPTIONS</h2>
+Except where indicated, all flags may be repeated multiple times.
+<dl>
+<dt><b>-d <i>string</i></b><br>
+<dd>
+Set a variety of debug options as encoded in the string.
+<p><dt><b>-D <i>name=string</i></i></b><br>
+<dd>
+Predefine the name as a function whose body is the string.
+Exactly equivalent to -e #&lt;ds;name;string&gt;.
+<p><dt><b>-e <i>string</i></b><br>
+<dd>
+Scan the string and execute any macro invocations. Any output
+left after execution is discarded.
+<p><dt><b>-f <i>inputfile</i></b><br>
+<dd>
+Specify the main ttm file to execute.
+Note that this is not the same as the file
+specified by the -r flag.
+<p><dt><b>-i</i></b><br>
+<dd>
+After executing any -D and -e options and executing any input file,
+enter the read-eval loop to execute commands interactively.
+<p><dt><b>-I <i>directory</i></b><br>
+<dd>
+Append the directory to the include path.
+<p><dt><b>-o <i>file</i></b><br>
+<dd>
+Send all output to the specified file. If not specified, then
+output is sent to standard output.
+<p><dt><b>-r <i>rsfile</i></b><br>
+<dd>
+Specify a file from which #&lt;rs&gt; will read its input.
+If not specified, stdin is assumed.
+Note that this is not the same as the file
+specified by the -f flag.
+<p><dt><b>-V</b><br>
+<dd>
+Output the version number of ttm and then exit.
+<p><dt><b>-X <i>tag=value</i></b><br>
+<dd>
+Set a ttm interpreter resource limit.
+The tag is a single character indicating what resource
+to set, and the value is the value to assign to that resource.
+The legal tag characters are as follows:
+<table>
+<tr><th>Tag<th>Resource<th>Value<th>Description
+<tr valign=top><td>b<td>Buffersize<td>integer&gt;0<td>
+Set the internal buffer size. The default is 2^20 characters.
+The suffix m|M is allowed to indicate multiplying by 2^20.
+The suffix k|K is allowed to indicate multiplying by 2^10;
+<tr valign=top><td>s<td>Stacksize<td>integer&gt;0<td>
+Set the internal stack size. The default provides for a maximum
+depth of 64. It is a good idea to keep this number small
+so that runaway recursion can be detected quickly.
+<tr valign=top><td>x<td>Executions<td>integer&gt;0<td>
+Limit the number of executions. The default is 2^16.
+The purpose is to catch tail recursive executions that
+do not eat up space.
+</table>
+<p><dt><b>--</i></b><br>
+<dd>
+Signal the end of options and disable further option
+processing. Anythinf after the -- is treated as an argument.
+<p><dt><b><i>arg...</i></b><br>
+<dd>
+Specify arguments that are accessible using the <i>#&lt;argv&gt;</i> function.
+</dl>
+
+<h2>OVERALL OPERATION</h2>
+The <b>ttm</b> macro processor
+scans the input/program file and executes any macro invocations encountered.
+If no file is specified or if file is '-', standard input is read.
+Note that in this latter case, all of standard input will be read
+up to EOF and then processing will commence.
+<p>
+It is assumed that TTM is given a text file containing some combination
+of ordinary text and TTM function calls (i.e. invocations).
+The text is scanned character by character. Any ordinary text is passed
+to the output unchanged (except when escaped).
+If a TTM function is encountered, it is collected and executed.
+<p>
+Any arguments after the file name are provided to ttm using the
+<i>#&lt;argv;i&gt;</i> function.
+
+<h2>SYNTAX AND SEMANTICS</h2>
+The general form of a TTM function call looks like this.
+<pre>
+#&lt;functionname;arg1;arg2;...;argn&gt;
+</pre>
+where the functionname and the arguments are arbitrary character strings
+not characters of significance: '#', '&lt;', '&gt;', and ';'.
+The function is invoked with the specified arguments and the resulting
+text is inserted into the original text in place of the function call.
+If the function call was prefixed by a single '#' character, then scanning
+will resume just <u>before</u> the inserted text from the function call. If the
+function call was prefixed by two '#' characters, then scanning
+resumes just <u>after</u> the inserted text.
+<p>
+During the collection of a function call, additional function calls
+may be encountered, for example, this.
+<pre>
+#&lt;functionname;arg1;#&lt;f2;arg;...&gt;;...;argn&gt;
+</pre>
+The nested function call will be invoked when encountered and the result
+inserted into the text of the outer function call and scanning of
+the outer function call resumes at the place indicated by the number
+of '#' characters preceding the nested call.
+<p>
+If a function takes, for example, 2 arguments, any extras
+are ignored. For user defined functions, if too few arguments
+are provided, additional one are added with the value of the empty
+string ("").
+<p>
+As with other applicative programming languages,
+a TTM function may be recursive and may be defined as the result
+of the invocation of a sequence of other function calls.
+<p>
+Functions are either <i>built-in</i> or <i>user defined</i>.
+A large number of built-in
+functions exist and are defined in the TTM reference manual [1].
+
+<h3>Function definition</h3>
+User defined functions are created using the following two built-in
+functions.
+<ul>
+<li> #&lt;ds;name;text&gt;
+<li> #&lt;ss;name;text1;text2...;textn&gt;
+</ul>
+<p>
+The first function, <i>ds</i> for "define string",
+defines a named string in the TTM
+dictionary. The name is "name" and its value is "text".
+Invoking this named string will cause it's invocation to be replaced
+by the value (i.e. "text").
+<p>
+The second function, <i>ss</i> for "segment string",
+scans the text of a previously defined string
+looking for occurrences of its arguments: text1, text2, ... textn.
+When an occurrence is found, it is replaced with a <i>segment mark</i>.
+All occurrences of each argument are replaced by the same segment mark.
+<p>
+When a segmented string is invoked, each argument to the call
+is substituted for the corresponding segment mark.
+Consider this example.
+<pre>
+01 #&lt;ds;F;abcxxdefyy&gt;
+02 #&lt;ss;F;xx;yy&gt;
+03 #&lt;F;11;22&gt;
+</pre>
+The string F is defined (line 1) and its body "abcxxdefyy"
+is segmented on the two strings "xx" and "yy" (line2).
+When invoked (line 3), it will return the value "abc11def22".
+In effect, we have a user defined function F with two arguments.
+
+<h3>Escaping</h3>
+It is possible to escape one or more characters using either of two
+conventions.
+<ul>
+<li> &lt;...&gt; &ndash; escape multiple characters.
+<li> @ &ndash; escape a single character
+</ul>
+<p>
+If a string is enclosed in &lt;...&gt;, then it is scanned 
+but not interpreted by TTM. In the scanning process, the outer
+&lt; and &gt; brackets are removed. If there are nested occurrences
+of &lt;...&gt;, then they are scanned but the '&lt;' and '&gt;' are not removed.
+The brackets must balance: the number of '&lt;' characters
+must equal the number of '&gt;' characters.
+
+The '@' escape convention causes the interpreter to pass as-is the character
+after the '@'. The leading '@' is left if it within a &lt;...&gt;
+escape sequence, otherwise it is removed. One use is to
+allow unbalanced occurrences of '&lt;' or '&gt;' characters
+[Note: in the reference implementation, '@' was changed to '\'].
+
+<h2>Examples</h2>
+
+<h3>Example 1: Function Definition</h3>
+
+The most basic example involves defining
+a function that is useful for defining addtional functions.
+This "meta" function is called <i>def</i>.
+It is written as:
+<pre>
+#&lt;ds;def;&lt;##&lt;ds;name;&lt;text&gt;&gt;##&lt;ss;name;subs&gt;&gt;&gt;
+#&lt;ss;def;name;subs;text&gt;
+</pre>
+<p>
+We can, for example, use <i>def</i> to define the string XX as
+12345 and then segment XX on 34 by writing this.
+<pre>
+#&lt;def;XX;34;12345&gt;
+</pre>
+<p>
+The call
+<pre>
+#&lt;XX;0000&gt;
+</pre>
+will then produce the string "1200005".
+<p>
+The def function operates by invoking ds to define the function
+being defined &mdash; XX in our example &mdash; and then segmenting the body
+of XX by any specified arguments: "34" in this case. When XX is invoked,
+its argument is substituted for the segment mark.
+
+<h3>Example 2: Factorial</h3>
+The factorial function can be defined (using the above #&lt;def&gt; function)
+as follows.
+<pre>
+#&lt;def;n!;N;&lt;#&lt;lt;N;2;1;&lt;#&lt;mu;N;#&lt;n!;#&lt;su;N;1&gt;&gt;&gt;&gt;&gt;&gt;&gt;
+</pre>
+Notice that the inner computation (#&lt;mu...) is escaped
+so it will only be evaluated after the #&lt;lt... function
+is executed and returns that nested computation as its result.
+<p>
+An example call would look like this.
+<code>#&lt;n!;3&gt;</code>
+and would return the string 6.
+
+<h2>MODIFICATIONS</h2>
+This ttm processor adheres closely to the specification in the
+ttm specification documents [1,2].
+<p>
+However, the following general changes to TTM should be noted.
+<ol>
+<p>
+<li> The escape character is changed from '@' to '\'.
+<p>
+<li> The meta character (end of input) is changed from ''' (i.e. single quote)
+to '\n' (i.e. linefeed).
+<p>
+<li>
+Escape handling is slightly different and adheres more closely
+to the Unix rules. Specifically, the following escape sequences,
+when occurring outside of &lt;...&gt;, are translated as follows.
+<table>
+<tr><th>Escape Sequence<th>Translation
+<tr><td>\r<td>carriage return
+<tr><td>\n<td>line feed
+<tr><td>\t<td>tab
+<tr><td>\b<td>backspace
+<tr><td>\f<td>form feed
+</table>
+Additionally, if an escape occurs at the end of a line,
+then that end of line is ignored. This allows one to
+provide some formatting for function invocations without
+necessarily having to clutter up the result with new lines.
+<p>
+<li> Only lower case built-in function names are supported.
+<p>
+<li>
+This version of ttm supports (more or less) utf-8. The meta characters
+are restricted to be a subset of the US-ASCII 7-bit subset of utf-8.
+Otherwise, strings may contain any legal utf-8 multi-byte character.
+This allows for inclusion of utf-8 codepoints, but only limited validation
+is performed to see if the string is truly utf-8.
+<p>
+Internally, all characters are represented as 32-bit UTF characters.
+This wastes some space, but makes processing simpler.
+<p>
+</ol>
+
+<h3>A Note on Segment Marks</h3> 
+In this implementation, segment (and creation) marks
+are represented as a single 32-bit integer, where the value zero
+indicates a creation mark and any integer greater than zero
+indicates the n'th segment mark.
+The integer has bits set so that is is not a legal UTF character.
+<p>
+One more point about segment marks. It is possible using #&lt;gn&gt;, for
+example, to output a string with segment marks in it. The original
+documentation is silent on how such segment marks are to be treated.
+In this implementation, they are included. If an attempt is made to print
+them, they are converted to the form '^n' where n is the segment mark.
+
+<h3>New Functions</h3>
+A number of new functions have been implemented and are describe below
+using a notation similar to that in [1].
+<p>
+<b><u>ttm</u></b><br>
+<b>Specification: </b>ttm,2,*,S<br>
+<b>Invocation: </b>#&lt;ttm;cmd;arg1;arg2;...&gt;<br>
+This function provides a general mechanism for embedding
+special commands to extract or alter interpreter information.
+The currently defined commands are as follows.
+<table>
+<tr><th>Command<th>Description
+<tr valign=top><td>#&lt;ttm;meta;metachars&gt;<td>
+Change the set of meta-characters.
+It takes one argument that specifies the set of
+meta characters. Setting the default behavior would use
+this invocation: #&lt;ttm;meta; \#\&lt;\;\&gt;\\&gt;.
+Note that this is separate from the CM function.
+<tr valign=top><!--empty line-->
+<tr valign=top><td>#&lt;ttm;info;subcommands;...&gt;<td>
+Dump information about internal ttm structures.
+The currently defined subcommands for info are as follows.
+<table>
+<tr><th>SubCommand<th>Description
+<tr valign=top><td>#&lt;ttm;info;name;name1;name2...&gt;<td>
+Return info about each namei.
+<tr valign=top><td>#&lt;ttm;info;class;class1;class2...&gt;<td>
+Return info about each classi.
+</table>
+</table>
+
+<p>
+<b><u>include</u></b><br>
+<b>Specification: </b><td>include,1,1,S<br>
+<b>Invocation: </b>#&lt;include;filename&gt;<br>
+Read the contents of the specified file into the buffer and
+continue processing.  For security reasons, the constraint
+is imposed that the file name must only be accessible
+through one of the include paths (i.e. using -I on the
+command line).  This has the possibly undesirable
+consequence that if the user used #&lt;include&gt;, then the user
+must also specify a -I on the command line.  This constraint
+also implies that the parameter filename must be a
+relative path. If the result from reading the file is unwanted,
+then one should use "-e #&lt;include;filename&gt;" on the command line.
+
+<p>
+<b><u>argv</u></b><br>
+<b>Specification: </b>argv,1,1,V<br>
+<b>Invocation: </b><td>#&lt;argv;i&gt;<br>
+Return the i'th command line argument
+starting at 0 (like java, not like C).
+The parameter i should be a a non-negative
+integer.
+
+<p>
+<b><u>classes</u></b><br>
+<b>Specification: </b>classes,0,0,V<br>
+<b>Invocation: </b><td>#&lt;classes&gt;<br>
+Return the names of all defined character classes
+arranged in sorted order and separated by commas.
+
+<p>
+<b><u>pf</u></b><br>
+<b>Specification: </b>pf,0,1,S<br>
+<b>Invocation: </b>#&lt;pf;stderr&gt;<br>
+If no arguments are given, then flush stdout and stderr.
+If the single argument is the string 'stderr',
+then flush stderr.
+If the single argument is the string 'stdout'
+then flush stdout.
+
+<h3>Modifications to Function Semantics</h3>
+The semantics of the following functions others have been changed.
+<p>
+<b><u>ad</u></b><br>
+<b>Specification: </b>ad,2,*,V<br>
+<b>Invocation: </b>#&lt;ad;num1;...numn&gt;<br>
+This function normally takes only two arguments.
+It has been extended to take an arbitrary number
+of arguments and return the sum of all of the arguments.
+
+<p>
+<b><u>mu</u></b><br>
+<b>Specification: </b>mu,2,*,V<br>
+<b>Invocation: </b>#&lt;mu;num1;...numn&gt;<br>
+This function normally takes only two arguments.
+It has been extended to take an arbitrary number
+of arguments and return the product of all of the arguments.
+
+<p>
+<b><u>ps</u></b><br>
+<b>Specification: </b>ps,1,2,S<br>
+<b>Invocation: </b>#&lt;ps;string;stderr&gt;<br>
+This function normally prints the string on
+stdout. If the second argument is the string
+"stderr", however, then it prints to stderr.
+
+<p>
+<b><u>psr</u></b><br>
+<b>Specification: </b>psr,1,1,S<br>
+<b>Invocation: </b>#&lt;psr;string&gt;<br>
+This function prints its argument to stdout
+and then reads from stdin up to the meta-character
+(see the cm function).
+
+<p>
+<b><u>cm</u></b><br>
+<b>Specification: </b>cm,1,1,S<br>
+<b>Invocation: </b>#&lt;cm;string&gt;<br>
+This function specifies the character
+that is used to terminate input when using,
+for example #&lt;rs&gt;.
+The default meta-character has been changed
+from "'" to "\n". This means that as a rule,
+reading will read only a single line of input.
+One can, however use the escape character
+at the end of the line to read multiple lines
+with the escaped '\n' being elided.
+
+<p>
+<b><u>cf</u></b><br>
+<b>Specification: </b>cf,2,2,S<br>
+<b>Invocation: </b>#&lt;cf;new-name;old-name&gt;<br>
+The original definition said that the body of
+old-name, including segment marks and beginning
+at the old-name's residual pointer was copied
+to the body of new-name.
+However, trying to figure out how to handle
+a set of segment marks with gaps is problematic.
+So, the definition has been modified to
+copy the whole body of the old-name
+as the body of the new name, ignoring (but duplicating)
+the residual pointer.
+
+<p>
+<b><u>exit</u></b><br>
+<b>Specification: </b>exit,0,1,S<br>
+<b>Invocation: </b>#&lt;exit;exitcode&gt;</br>
+This was changed to allow optional specification
+of a return code.
+
+<p>
+<b><u>names</u></b><br>
+<b>Specification: </b>exit,0,1,V<br>
+<b>Invocation: </b>#&lt;names&gt;</br>
+This was changed so that
+if the second argument is present, then
+all names are returned, otherwise only non-builtin
+names are returned.
+
+<p>
+<b><u>tn</u></b><br>
+<b>Specification: </b>tn,0,*,V<br>
+<b>Invocation: </b>#&lt;tn;name1;...namen&gt;</br>
+This was changed so that only the specified function names
+will be traced. If there are no names provided, then all function
+invocations will be traced.
+
+<p>
+<b><u>tf</u></b><br>
+<b>Specification: </b>tf,0,*,V<br>
+<b>Invocation: </b>#&lt;tn;name1;...namen&gt;</br>
+This was changed so that only the specified function names
+will have tracing turned off. If there are no names provided, then no
+function invocations will be traced. Note that turning off all tracing
+will turn off tracing on all specific function.
+
+<p>
+<b><u>ps</u></b><br>
+<b>Specification: </b>ps,1,2,S<br>
+<b>Invocation: </b>#&lt;ps;string;stdxx&gt;</br>
+This was changed to an optional allow a second argument that
+specifies sending the output to either "stdout"
+or "stderr". If missing, then stdout is assumed.
+Additionally, in order to avoid spoofing, all control
+characters except newline are elided and a final newline is forced.
+
+<p>
+<b><u>rs</u></b><br>
+<b>Specification: </b>rs,0,0,S<br>
+<b>Invocation: </b>#&lt;rs&gt;</br>
+In order to avoid spoofing, the string 'ttm>' is printed
+before reading.
+
+<p>
+<b><u>rs</u></b><br>
+<b>Specification: </b>rs,0,0,S<br>
+<b>Invocation: </b>#&lt;rs&gt;</br>
+In order to avoid spoofing, the string 'ttm>' is printed
+before reading.
+
+<p>
+The time function from the interactive version differs from
+that of the batch version. The interactive time function
+corresponds to the batch xtime function and the batch time
+function returns time of day instead of execution time.
+The batch versions of time and xtime are implemented.
+In additon, ctime is implemented to give time of day
+in Unix ctime format.
+<p>
+<b><u>time</u></b><br>
+<b>Specification: </b>time,0,0,V<br>
+<b>Invocation: </b>#&lt;time&gt;</br>
+Returns the time of day in 100'ths of second
+from ?.
+<p>
+<b><u>xtime</u></b><br>
+<b>Specification: </b>xtime,0,0,V<br>
+<b>Invocation: </b>#&lt;time&gt;</br>
+Returns the execution time in 100'ths of second.
+<p>
+<b><u>ctime</u></b><br>
+<b>Specification: </b>ctime,1,1,V<br>
+<b>Invocation: </b>#&lt;ctime;time&gt;</br>
+Convert the time (the result of a call to #&lt;time&gt)
+to a printable string as defined by the Unix ctime function.
+
+<p>
+A number of functions (#&lt;gn&gt;, $&lt;cn&gt;, etc.)
+are supposed to return some fixed number of characters.
+The original documentation is silent about what should
+happen if there are not enough characters available to return.
+In this implementation, whatever characters are available are returned,
+even if less than the number requested.
+
+<h2>IMPLEMENTED FUNCTIONS</h2>
+The following functions from the original ttm
+are implemented.
+
+<table>
+<tr>
+<td>abs,1,1,V
+<td>ad,2,2,V
+<td>ap,2,2,S
+<td>cc,1,1,SV
+<tr>
+<td>ccl,2,2,SV
+<td>cf,2,2,S
+<td>cm,1,1,S
+<td>cn,2,2,SV
+<tr>
+<td>cp,1,1,SV
+<td>cr,2,2,S
+<td>cs,1,1,SV
+<td>ctime,1,1,V
+<tr>
+<td>dcl,2,2,S
+<td>dncl,2,2,S
+<td>ds,2,2,S
+<td>dv,2,2,V
+<tr>
+<td>dvr,2,2,V
+<td>ecl,1,*,S
+<td>eos,3,3,V
+<td>eq,4,4,V
+<tr>
+<td>eq?,4,4,V
+<td>es,1,*,S
+<td>exit,0,0,S
+<td>flip,1,1,V
+<tr>
+<td>gn,2,2,V
+<td>gt,4,4,V
+<td>gt?,4,4,V
+<td>isc,4,4,SV
+<tr>
+<td>lt,4,4,V
+<td>lt?,4,4,V
+<td>mu,2,2,V
+<td>names,0,1,V
+<tr>
+<td>ndf,3,3,V
+<td>norm,1,1,V
+<td>ps,1,2,S
+<td>psr,1,1,SV
+<tr>
+<td>rrp,1,1,S
+<td>rs,0,0,V
+<td>sc,2,63,SV
+<td>scl,2,2,S
+<tr>
+<td>scn,3,3,SV
+<td>sn,2,2,S
+<td>ss,2,2,S
+<td>su,2,2,V
+<tr>
+<td>tcl,4,4,V
+<td>tf,0,0,S
+<td>time,0,0,V
+<td>tn,0,0,S
+<tr>
+<td>xtime,0,0,V
+<td>zlc,1,1,V
+<td>zlcp,1,1,V
+</table>
+
+<h2>UNIMPLEMENTED FUNCTIONS</h2>
+The following functions from the original ttm
+are not implemented.
+<table>
+<tr><td>rcd,2,2,S<td>fm,1,*,S<td>tabs,1,8,S<td>scc,2,2,S
+<tr><td>icc,1,1,S<td>outb,0,3,S<td>store,2,2,S<td>delete,1,1,S
+<tr><td>copy,1,1,S<td>show,0,1,S<td>libs,2,2,S<td>break,0,1,S
+</table>
+<p>
+The following functions from the batch ttm
+are not implemented.
+<p>
+<table>
+<tr><td>insw,2,2,S
+<td>ttmsw,2,2,S
+<td>cd,0,0,V
+<td>cdsw,2,2,S
+<tr><td>for,0,0,V
+<td>forsw,2,2,S
+<td>pk,0,0,V
+<td>pksw,2,2,S
+<tr><td>ps,1,1,S
+<td>page,1,1,S
+<td>sp,1,1,S
+<td>fm,0,*,S
+<tr><td>tabs,1,10,S
+<td>scc,3,3,S
+<td>fmsw,2,2,S
+<td>des,1,1,S
+</table>
+
+<h2>BUGS</h2>
+
+<ul>
+<li> The windows solution will build and run under Visual Studio C++ 2010,
+but the resulting ttm.exe fails when run standalone.
+</ul>
+
+<h2>LICENSE</h2>
+
+This software and documents is released under the terms of
+the Apache License version 2.  For details of the license, see
+<a href="http://www.apache.org/licenses/LICENSE-2.0">
+http://www.apache.org/licenses/LICENSE-2.0.
+</a>
+
+<h2>VERSION</h2>
+1.0
+
+<h2>ACKNOWLEDGEMENTS</h2>
+
+The original ttm was designed and implemented
+by Steven H. Caine and E. Kent Gordon.
+(<a href="http://www.cfg.com/">http://www.cfg.com/</a>).
+
+<h2>REFERENCES</h2>
+<ol>
+<li> Caine, S.H. and Gordon, E.K.,
+<a href="https://github.com/Unidata/ttm/ttm_interpretive_language_pr_07.pdf">
+TTM: An Experimental Interpretive Language.</a>
+California Institute of Technology, Willis H. Booth Computing Center, Programming Report No. 7, 1968.
+<li> Caine, S.H. and Gordon, E.K.,
+<a href="https://github.com/Unidata/ttm/ttm_batch_processing_pr_08.pdf">TTM: A Macro Language for Batch Processing.</a>
+California Institute of Technology, Willis H. Booth Computing Center, Programming Report No. 8 May, 1969.
+<li> Farber, D. J., 635 Assembly System - GAP. Bell Telephone Laboratories Computation Center (1964).
+<li>Strachey, C., A General Purpose Macro Generator. Comput J 8, 3(1965), pp. 225-241.</ref>.
+
+</ol>
+
+<h2>SOURCE CODE</h2>
+<ul>
+<li><a href="https://github.com/Unidata/ttm">A reference implementation of TTM</a>.
+</ul>
+
+<h2>CHANGELOG</h2>
+<table>
+<tr><td>15 November 2012<td>&mdash;
+    <td>Version 1.0 release.
+</table>
+
+</body>
+</html>

@@ -1,0 +1,152 @@
+##<ps;##<ttm;info;name;comment>>
+#<comment;##<ps;##<ttm;info;name;def;comment>>>
+#<ds;greek;<ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ>>
+#<ds;kanji;龥>
+#<ds;katakana;キャク>
+#<ds;有為の;奥山>
+##<ttm;info;name;greek;kanji;katakana;有為の>
+#<ds;x;12θ34>
+#<ap;x;567890>
+#<rrp;x>
+#<ss;x;θ>
+##<ttm;info;name;x>
+##<cc;x>
+##<cn;8;x>
+##<cn;2;x>
+##<ttm;info;name;x>
+#<ds;d;x:y>
+#<sc;d;x;y>
+##<ttm;info;name;d>
+#<ndf;d;d defined;d not defined>
+#<ndf;dd;dd defined;dd not defined>
+#<argv;2>
+#<ad;3;4;7>
+#<su;1;17>
+#<mu;2;16;2>
+#<dv;200;13>
+#<dvr;200;13>
+#<def;XX;34;12345>
+#<XX;0000>
+##<abs;2>
+##<abs;-2>
+##<eq;2;2;equal;!equal>
+##<eq;2;3;equal;!equal>
+##<eq?;abcd;abcd;equal?;!equal?>
+##<eq?;abc;abcd;equal?;!equal?>
+##<gt;2;1;gt;!gt>
+##<gt;2;2;gt;!gt>
+##<gt?;abcd;abc;gt?;!gt?>
+##<gt?;abcd;abcd;gt?;!gt?>
+##<lt;1;2;lt;!lt>
+##<lt;2;2;lt;!lt>
+##<lt?;abc;abcd;lt?;!lt?>
+##<lt?;abcd;abcd;lt?;!lt?>
+##<flip;abcd>
+##<flip;>
+##<gn;2;12345>
+##<gn;-2;12345>
+##<gn;0;12345>
+##<gn;1;>
+##<gn;2;a>
+#<norm;12345>
+##<zlc;1,(a,b),c>
+##<zlcp;a(b)>
+##<zlcp;a,(b)>
+##<zlcp;(b,(c))f>
+#<ds;test;123>
+##<ndf;test;test defined;test not defined>
+#<es;test>
+##<ndf;test;test defined;test not defined>
+#<ds;test;123>
+#<eos;test;test eos;test not eos>
+#<cn;3;test>
+#<eos;test;test eos;test not eos>
+##<ds;test_sn;123456>
+##<sn;6;test_sn>
+#<eos;test_sn;test_sn eos;test_sn not eos>
+##<dcl;digits;0123456789>
+##<dncl;nonlc;abcdefghijklmnopqrstuvwxyz>
+##<ds;testclass;01Ab5>
+##<ccl;digits;testclass>
+##<scl;nonlc;testclass>
+##<ttm;info;name;testclass>
+##<cn;100;testclass>
+##<ttm;info;name;testclass>
+##<ttm;info;name;testclass>
+##<rrp;testclass>
+##<tcl;digits;testclass;digit found;digit not found>
+##<cn;100;testclass>
+##<classes>
+##<ecl;digits>
+##<ecl;#<zlc;##<classes>>>
+##<classes>
+#<ds;testisc;012345>
+##<isc;012;testisc;match;no match>
+##<ttm;info;name;testisc>
+##<isc;34;testisc;match;no match>
+##<ttm;info;name;testisc>
+##<isc;34;testisc;match;no match>
+##<ttm;info;name;testisc>
+##<isc;5;testisc;match;no match>
+##<ttm;info;name;testisc>
+##<isc;;testisc;match;no match>
+##<ttm;info;name;testisc>
+#<ds;testscn;012345>
+##<scn;234;testscn;not substring>
+##<ttm;info;name;testscn>
+##<scn;234;testscn;not substring>
+##<ttm;info;name;testscn>
+##<ctime;135258979000>
+#<es;#<zlc;##<names>>>
+#<names;all>
+#<ds;testcr;abcxxdef>
+#<cr;testcr;xx>
+##<ttm;info;name;testcr>
+##<testcr>
+#<ds;testcp;<a<b;c>;d;<;>>>
+##<cp;testcp>
+##<ttm;info;name;testcp>
+##<cp;testcp>
+##<ttm;info;name;testcp>
+##<cp;testcp>
+##<ttm;info;name;testcp>
+#<ds;testcs;abcdefgcd>
+#<sc;testcs;cd>
+##<ttm;info;name;testcs>
+##<cs;testcs>
+##<cs;testcs>
+##<cs;testcs>
+##<ttm;info;name;testcs>
+#<ds;testlf;abcd>
+#<lf;testlf>
+#<es;testlf>
+#<ndf;testlf;testlf defined;testlf not defined>
+#<uf;testlf>
+#<es;testlf>
+#<ndf;testlf;testlf defined;testlf not defined>
+#<ds;testcf;abccdcce>
+#<sc;testcf;cc>
+##<ttm;info;name;testcf>
+#<cf;testcf2;testcf>
+##<ttm;info;name;testcf2>
+#<ds;testtn;<functionbodyxx>>
+#<ss;testtn;xx>
+#<tn;testtn>
+##<testtn;y1>
+#<pf>
+#<tf;testtn>
+##<testtn;y2>
+#<tf>
+##<testtn;y3>
+#<tn>
+##<testtn;y4>
+#<pf>
+##<psr;reading line1>
+##<rs>
+#<cm;.>
+##<rs;reading line1>
+##<rs;reading line3>
+#<cm;\n>
+#<comment;<Need to test #<include>>>
+#<def;n!;N;<#<lt;N;2;1;<#<mu;N;#<n!;#<su;N;1>>>>>>>
+#<n!;3>

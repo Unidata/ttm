@@ -1,0 +1,229 @@
+comment,0,0,V residual=0 body=||
+def,0,3,V residual=0 body=|##<ds;^01;<^03>>##<ss;^01;^02>|
+comment,0,0,V residual=0 body=||
+[00] begin: ##<testtn;y1>
+[00] end: ##<testtn> => "functionbodyy1"
+[00] end: #<tn> => ""
+[00] begin: ##<testtn;y4>
+[00] end: ##<testtn> => "functionbodyy4"
+[00] begin: #<pf>
+[00] end: #<pf> => ""
+[00] begin: ##<psr;reading line1>
+reading line1
+[00] end: ##<psr> => "line1.line2"
+[00] begin: ##<rs>
+[00] end: ##<rs> => "line3"
+[00] begin: #<cm;.>
+[00] end: #<cm> => ""
+[00] begin: ##<rs;reading line1>
+[00] end: ##<rs> => ""
+[00] begin: ##<rs;reading line3>
+[00] end: ##<rs> => ""
+[00] begin: #<cm;n>
+[00] end: #<cm> => ""
+[00] begin: #<comment;Need to test #<include>>
+[00] end: #<comment> => ""
+[00] begin: #<def;n!;N;#<lt;N;2;1;<#<mu;N;#<n!;#<su;N;1>>>>>>
+[00] end: #<def> => "##<ds;n!;<#<lt;N;2;1;<#<mu;N;#<n!;#<su;N;1>>>>>>>##<ss;n!;N>"
+[00] begin: ##<ds;n!;#<lt;N;2;1;<#<mu;N;#<n!;#<su;N;1>>>>>>
+[00] end: ##<ds> => ""
+[00] begin: ##<ss;n!;N>
+[00] end: ##<ss> => ""
+[00] begin: #<n!;3>
+[00] end: #<n!> => "#<lt;3;2;1;<#<mu;3;#<n!;#<su;3;1>>>>>"
+[00] begin: #<lt;3;2;1;#<mu;3;#<n!;#<su;3;1>>>>
+[00] end: #<lt> => "#<mu;3;#<n!;#<su;3;1>>>"
+[02] begin: #<su;3;1>
+[02] end: #<su> => "2"
+[01] begin: #<n!;2>
+[01] end: #<n!> => "#<lt;2;2;1;<#<mu;2;#<n!;#<su;2;1>>>>>"
+[01] begin: #<lt;2;2;1;#<mu;2;#<n!;#<su;2;1>>>>
+[01] end: #<lt> => "#<mu;2;#<n!;#<su;2;1>>>"
+[03] begin: #<su;2;1>
+[03] end: #<su> => "1"
+[02] begin: #<n!;1>
+[02] end: #<n!> => "#<lt;1;2;1;<#<mu;1;#<n!;#<su;1;1>>>>>"
+[02] begin: #<lt;1;2;1;#<mu;1;#<n!;#<su;1;1>>>>
+[02] end: #<lt> => "1"
+[01] begin: #<mu;2;1>
+[01] end: #<mu> => "2"
+[00] begin: #<mu;3;2>
+[00] end: #<mu> => "6"
+
+
+
+
+
+
+greek,0,0,V residual=0 body=|ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ|
+kanji,0,0,V residual=0 body=|龥|
+katakana,0,0,V residual=0 body=|キャク|
+有為の,0,0,V residual=0 body=|奥山|
+
+
+
+
+
+x,0,1,V residual=0 body=|12^0134567890|
+
+1
+2^01345678
+90
+x,0,1,V residual=11 body=|12^0134567890|
+
+
+2
+d,0,2,V residual=0 body=|^01:^02|
+
+d defined
+dd not defined
+b
+14
+-16
+64
+15
+5
+
+1200005
+2
+2
+equal
+!equal
+equal?
+!equal?
+gt
+!gt
+gt?
+!gt?
+lt
+!lt
+lt?
+!lt?
+dcba
+
+12
+345
+
+
+a
+5
+1;(a,b);c
+a;b
+a;b
+b,(c);f
+
+test defined
+
+test not defined
+
+test not eos
+123
+test eos
+
+
+test_sn eos
+
+
+
+01
+
+testclass,0,0,V residual=3 body=|01Ab5|
+
+b5
+testclass,0,0,V residual=5 body=|01Ab5|
+
+testclass,0,0,V residual=5 body=|01Ab5|
+
+
+digit found
+01Ab5
+digits,nonlc
+
+
+
+
+match
+testisc,0,0,V residual=3 body=|012345|
+
+match
+testisc,0,0,V residual=5 body=|012345|
+
+no match
+testisc,0,0,V residual=5 body=|012345|
+
+match
+testisc,0,0,V residual=6 body=|012345|
+
+match
+testisc,0,0,V residual=6 body=|012345|
+
+
+01
+testscn,0,0,V residual=5 body=|012345|
+
+not substring
+testscn,0,0,V residual=5 body=|012345|
+
+Sat Nov 10 16:23:10 2012
+
+
+abs,ad,ap,argv,cc,ccl,cf,classes,cm,cn,comment,cp,cr,cs,ctime,dcl,def,dncl,ds,dv,dvr,ecl,eos,eq,eq?,es,exit,flip,gn,gt,gt?,include,isc,lf,lt,lt?,mu,names,ndf,norm,pf,ps,psr,rrp,rs,sc,scl,scn,sn,ss,su,tcl,tf,time,tn,ttm,uf,xtime,zlc,zlcp
+
+
+testcr,0,0,V residual=0 body=|abc^00def|
+
+abc0001def
+
+a<b;c>
+testcp,0,0,V residual=7 body=|a<b;c>;d;<;>|
+
+d
+testcp,0,0,V residual=9 body=|a<b;c>;d;<;>|
+
+<;>
+testcp,0,0,V residual=12 body=|a<b;c>;d;<;>|
+
+
+2
+testcs,0,1,V residual=0 body=|ab^01efg^01|
+
+ab
+efg
+
+testcs,0,1,V residual=7 body=|ab^01efg^01|
+
+
+
+
+testlf defined
+
+
+testlf not defined
+
+2
+testcf,0,1,V residual=0 body=|ab^01d^01e|
+
+
+testcf2,0,1,V residual=0 body=|ab^01d^01e|
+
+
+
+
+functionbodyy1
+
+
+functionbodyy2
+
+functionbodyy3
+
+functionbodyy4
+
+line1.line2
+line3
+
+
+
+
+
+
+6
