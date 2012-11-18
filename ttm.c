@@ -176,6 +176,12 @@ Constants
 #define PRINTALL 1
 #define TOEOS (0x7fffffff)
 
+#ifdef DEBUG
+#define PASSIVEMAX 20
+#define ACTIVEMAX 20
+#endif
+
+
 /* TTM Flags */
 #define FLAG_EXIT  1
 #define FLAG_TRACE 2
@@ -270,6 +276,24 @@ typedef struct Buffer Buffer;
 typedef void (*TTMFCN)(TTM*, Frame*);
 
 /**************************************************/
+/* Generic pseudo-hashtable */
+
+struct HashEntry {
+    utf32* name;
+    unsigned int hash;
+    struct HashEntry* next;
+};
+
+struct HashTable {
+    struct HashEntry table[HASHSIZE];
+};
+
+/* Generic operations */
+static int hashLocate(struct HashTable* table, utf32* name, struct HashEntry** prevp);
+static void hashRemove(struct HashTable* table, struct HashEntry* prev, struct HashEntry* entry);
+static void hashInsert(struct HashTable* table, struct HashEntry* prev, struct HashEntry* entry);
+
+/**************************************************/
 /**
 TTM state object
 */
@@ -298,8 +322,8 @@ struct TTM {
     FILE* rsinput;
     int   isstdin;
     /* Following 2 fields are hashtables indexed by low order 7 bits of some character */
-    Name* dictionary[HASHSIZE];
-    Charclass* charclasses[HASHSIZE];
+    struct HashTable dictionary;
+    struct HashTable charclasses;
 };
 
 /**
@@ -336,9 +360,12 @@ Name Storage and the Dictionary
 
 /* If you add field to this, you need
    to modify especially ttm_ds
+
+Note: the rules of C casting allow this to be
+cast to a struct HashEntry.
 */
 struct Name {
-    utf32* name;
+    struct HashEntry entry;
     int trace;
     int locked;
     int builtin;
@@ -350,7 +377,6 @@ struct Name {
                                 in use in this string */
     TTMFCN fcn; /* builtin == 1 */
     utf32* body; /* builtin == 0 */
-    Name* next; /* "hash" chain */
 };
 
 /**
@@ -358,10 +384,9 @@ Character Classes  and the Charclass table
 */
 
 struct Charclass {
-    utf32* name;
+    struct HashEntry entry;
     utf32* characters;
     int negative;
-    Charclass* next;
 };
 
 /**************************************************/
@@ -378,12 +403,12 @@ static Frame* pushFrame(TTM*);
 static Frame* popFrame(TTM*);
 static Name* newName(TTM*);
 static void freeName(TTM*, Name* f);
-static void dictionaryInsert(TTM*, Name* str);
+static int dictionaryInsert(TTM*, Name* str);
 static Name* dictionaryLookup(TTM*, utf32* name);
 static Name* dictionaryRemove(TTM*, utf32* name);
 static Charclass* newCharclass(TTM*);
 static void freeCharclass(TTM*, Charclass* cl);
-static void charclassInsert(TTM*, Charclass* cl);
+static int charclassInsert(TTM*, Charclass* cl);
 static Charclass* charclassLookup(TTM*, utf32* name);
 static Charclass* charclassRemove(TTM*, utf32* name);
 static int charclassMatch(utf32 c, utf32* charclass);
@@ -461,6 +486,7 @@ static void trace(TTM*, int entering, int tracing);
 static void trace1(TTM*, int depth, int entering, int tracing);
 static void dumpstack(TTM*);
 static void dbgprint32(utf32* s, char quote);
+static void dbgprint32c(utf32 c, char quote);
 static int getOptionNameLength(char** list);
 static int pushOptionName(char* option, unsigned int max, char** list);
 static void initglobals();
@@ -500,6 +526,173 @@ static char* eoptions[MAXEOPTIONS+1]; /* null terminated */
 static char* argoptions[MAXARGS+1]; /* null terminated */
 
 /**************************************************/
+/**
+HashTable Management.  The table is only pseudo-hash
+simplified by making it an array of chains indexed by the
+low order 7 bits of the name[0].
+The hashcode is just the simple sum
+of the characters in the name shifted by 1 bit each.
+*/
+
+/* Define a hash computing macro */
+#define computehash(hash,name) {utf32* p; for(hash=0,p=name;*p!=NUL32;p++) {hash = hash + (*p <<1);} if(hash==0) hash=1;}
+
+/* Locate a named entry in the hashtable;
+   return 1 if found; 0 otherwise.
+   Store the entry before the named entry
+   or the entry that would have been the previous entry.
+*/
+
+static int
+hashLocate(struct HashTable* table, utf32* name, struct HashEntry** prevp)
+{
+    struct HashEntry* prev;
+    struct HashEntry* next;
+    utf32 index;
+    unsigned int hash;
+
+    computehash(hash,name);
+    if(!(table != NULL && name != NULL))
+    assert(table != NULL && name != NULL);
+    index = (name[0] & 0x7F);
+    prev = &table->table[index];
+    next = prev->next;
+    while(next != NULL) {
+	if(next->hash == hash
+	   && strcmp32(name,next->name)==0)
+	    break;
+	prev = next;
+	next = prev->next;
+    }
+    if(prevp) *prevp = prev;
+    return (next == NULL ? 0 : 1);
+}
+
+/* Remove an entry specified by argument 'entry'.
+   Assumes that the predecessor of entry is specified
+   by 'prev' as returned by hashLocate.
+*/
+
+static void
+hashRemove(struct HashTable* table, struct HashEntry* prev, struct HashEntry* entry)
+{
+   assert(table != NULL && prev != NULL && entry != NULL);
+   assert(prev->next == entry); /* validate the removal */
+   prev->next = entry->next;
+}
+
+
+/* Insert an entry specified by argument 'entry'.
+   Assumes that the predecessor of entry is specified
+   by 'prev' as returned by hashLocate.
+*/
+
+static void
+hashInsert(struct HashTable* table, struct HashEntry* prev, struct HashEntry* entry)
+{
+   assert(table != NULL && prev != NULL && entry != NULL);
+   assert(entry->hash != 0);
+   entry->next = prev->next;
+   prev->next = entry;
+}
+
+/**************************************************/
+/* Provide subtype specific wrappers for the HashTable operations. */
+
+static Name*
+dictionaryLookup(TTM* ttm, utf32* name)
+{
+    struct HashTable* table = &ttm->dictionary;
+    struct HashEntry* prev;    
+    struct HashEntry* entry;
+    Name* def = NULL;
+
+    if(hashLocate(table,name,&prev)) {
+	entry = prev->next;
+	def = (Name*)entry;
+    } /*else Not found */
+    return def;
+}
+
+static Name*
+dictionaryRemove(TTM* ttm, utf32* name)
+{
+    struct HashTable* table = &ttm->dictionary;
+    struct HashEntry* prev;    
+    struct HashEntry* entry;
+    Name* def = NULL;
+
+    if(hashLocate(table,name,&prev)) {
+	entry = prev->next;
+	hashRemove(table,prev,entry);
+	entry->next = NULL;
+	def = (Name*)entry;
+    } /*else Not found */
+    return def;
+}
+
+static int
+dictionaryInsert(TTM* ttm, Name* str)
+{
+    struct HashTable* table = &ttm->dictionary;
+    struct HashEntry* prev;    
+
+    if(hashLocate(table,str->entry.name,&prev))
+	return 0;
+    /* Does not already exist */
+    computehash(str->entry.hash,str->entry.name);/*make sure*/
+    hashInsert(table,prev,(struct HashEntry*)str);
+    return 1;
+}
+
+static Charclass*
+charclassLookup(TTM* ttm, utf32* name)
+{
+    struct HashTable* table = &ttm->charclasses;
+    struct HashEntry* prev;    
+    struct HashEntry* entry;
+    Charclass* def = NULL;
+
+    if(hashLocate(table,name,&prev)) {
+	entry = prev->next;
+	def = (Charclass*)entry;
+    } /*else Not found */
+    return def;
+}
+
+static Charclass*
+charclassRemove(TTM* ttm, utf32* name)
+{
+    struct HashTable* table = &ttm->charclasses;
+    struct HashEntry* prev;    
+    struct HashEntry* entry;
+    Charclass* def = NULL;
+
+    if(hashLocate(table,name,&prev)) {
+	entry = prev->next;
+	hashRemove(table,prev,entry);
+	entry->next = NULL;
+	def = (Charclass*)entry;
+    } /*else Not found */
+    return def;
+}
+
+static int
+charclassInsert(TTM* ttm, Charclass* cl)
+{
+    struct HashTable* table = &ttm->charclasses;
+    struct HashEntry* prev;    
+
+    if(hashLocate(table,cl->entry.name,&prev))
+	return 0;
+    /* Not already exists */
+    computehash(cl->entry.hash,cl->entry.name);
+    hashInsert(table,prev,(struct HashEntry*)cl);
+    return 1;
+}
+
+/**************************************************/
+
 static TTM*
 newTTM(long buffersize, long stacksize, long execcount)
 {
@@ -519,8 +712,8 @@ newTTM(long buffersize, long stacksize, long execcount)
     ttm->stacknext = 0;
     ttm->stack = (Frame*)malloc(sizeof(Frame)*stacksize);
     if(ttm->stack == NULL) fail(ttm,EMEMORY);
-    memset((void*)ttm->dictionary,0,sizeof(ttm->dictionary));
-    memset((void*)ttm->charclasses,0,sizeof(ttm->charclasses));
+    memset((void*)&ttm->dictionary,0,sizeof(ttm->dictionary));
+    memset((void*)&ttm->charclasses,0,sizeof(ttm->charclasses));
 #ifdef DEBUG
     ttm->flags |= FLAG_TRACE;
 #endif
@@ -662,88 +855,9 @@ static void
 freeName(TTM* ttm, Name* f)
 {
     assert(f != NULL);
-    if(f->name != NULL) free(f->name);
+    if(f->entry.name != NULL) free(f->entry.name);
     if(!f->builtin && f->body != NULL) free(f->body);
     free(f);
-}
-
-/**
-Dictionary Management.  The string dictionary is
-simplified by making it an array of chains indexed by the
-lo order 7 bits of the name[0] of the string.
-*/
-
-static void
-dictionaryInsert(TTM* ttm, Name* str)
-{
-    Name** table = ttm->dictionary;
-    Name* next;
-    utf32 index = (str->name[0] & 0x7F);
-
-    next = table[index];
-    if(next == NULL) {
-        table[index] = str;
-    } else {
-        Name* prev = NULL;
-        /* search chain for str */
-        while(next != NULL) {
-            if(strcmp32(str->name,next->name)==0)
-                break;
-            prev = next;
-            next = next->next;
-        }
-        if(next == NULL) {/* str not previously defined */
-            prev->next = str;
-        } else {/* replace existing definition */
-            Name* chain = next->next; /* save */
-            freeName(ttm,next);
-            prev->next = str;
-            str->next = chain;
-        }
-    }
-}
-
-static Name*
-dictionaryLookup(TTM* ttm, utf32* name)
-{
-    Name** table = ttm->dictionary;
-    Name* f;
-    utf32 index;
-    assert(name != NULL);
-    index = (name[0] & 0x7F);
-    f = table[index];
-    while(f != NULL) {/* search chain for str */
-        if(strcmp32(name,f->name)==0)
-            break;
-        f = f->next;
-    }
-    return f;
-}
-
-static Name*
-dictionaryRemove(TTM* ttm, utf32* name)
-{
-    Name** table = ttm->dictionary;
-    Name* next;
-    Name* prev;
-    utf32 index;
-
-    assert(name != NULL);
-    index = (name[0] & 0x7F);
-    next = table[index];
-    prev = NULL;
-    while(next != NULL) {/* search chain for str */
-        if(!next->locked && strcmp32(name,next->name)==0) {
-            if(prev == NULL)
-                table[index] = next->next;
-            else
-                prev->next = next->next;
-            break;
-        }
-        prev = next;
-        next = next->next;
-    }
-    return next;
 }
 
 /**************************************************/
@@ -759,84 +873,9 @@ static void
 freeCharclass(TTM* ttm, Charclass* cl)
 {
     assert(cl != NULL);
-    if(cl->name != NULL) free(cl->name);
+    if(cl->entry.name != NULL) free(cl->entry.name);
     if(cl->characters) free(cl->characters);
     free(cl);
-}
-
-/**
-Charclass Table Management.  The char class table is
-simplified by making it a array of chains indexed by the
-first char of the name of the char class.
-*/
-
-static void
-charclassInsert(TTM* ttm, Charclass* cl)
-{
-    Charclass** table = ttm->charclasses;
-    Charclass* next;
-    utf32 index = (cl->name[0] & 0x7F);
-    next = table[index];
-    if(next == NULL) {
-        table[index] = cl;
-    } else {
-        Charclass* prev = NULL;
-        /* search chain for cl */
-        while(next != NULL) {
-            if(strcmp32(cl->name,next->name)==0)
-                break;
-            prev = next;
-            next = next->next;
-        }
-        if(next == NULL) {/* cl not previously defined */
-            prev->next = cl;
-        } else {/* replace existing definition */
-            Charclass* chain = next->next; /* save */
-            freeCharclass(ttm,next);
-            prev->next = cl;
-            cl->next = chain;
-        }
-    }
-}
-
-static Charclass*
-charclassLookup(TTM* ttm, utf32* name)
-{
-    Charclass** table = ttm->charclasses;
-    Charclass* cl;
-    utf32 index = (name[0] & 0x7F);
-    cl = table[index];
-    while(cl != NULL) {/* search chain for cl */
-        if(strcmp32(name,cl->name)==0)
-            break;
-        cl = cl->next;
-    }
-    return cl;
-}
-
-static Charclass*
-charclassRemove(TTM* ttm, utf32* name)
-{
-    Charclass** table = ttm->charclasses;
-    Charclass* next;
-    Charclass* prev;
-    utf32 index = (name[0] & 0x7F);
-
-    assert(name != NULL);
-    next = table[index];
-    prev = NULL;
-    while(next != NULL) {/* search chain for cl */
-        if(strcmp32(name,next->name)==0) {
-            if(prev == NULL)
-                table[index] = next->next;
-            else
-                prev->next = next->next;
-            break;
-        }
-        prev = next;
-        next = next->next;
-    }
-    return next;
 }
 
 static int
@@ -985,17 +1024,17 @@ fprintf(stderr,"\n");
         }
         memcpy32((void*)insertpos,ttm->result->content,ttm->result->length);
 #ifdef DEBUG
-fprintf(stderr,"context:\n\tpassive=");
+fprintf(stderr,"context:\n\tpassive=|");
 /* Since passive is not normally null terminated, we need to fake it */
-  {utf32 save = *ttm->buffer->passive;
-  *ttm->buffer->passive = NUL32;
-  dbgprint32(ttm->buffer->content,'|');
-  *ttm->buffer->passive = save;
+  {int i; utf32* p;
+    for(p=ttm->buffer->passive,i=0;i<PASSIVEMAX && *p != NUL32;i++,p++)
+      dbgprint32c(*p,'|');
+    fprintf(stderr,"...|\n");
+    fprintf(stderr,"\tactive=|");
+    for(p=ttm->buffer->active,i=0;i<ACTIVEMAX && *p != NUL32;i++,p++)
+      dbgprint32c(*p,'|');
+    fprintf(stderr,"...|\n");
   }
-fprintf(stderr,"\n");
-fprintf(stderr,"\tactive=");
-dbgprint32(ttm->buffer->active,'|');
-fprintf(stderr,"\n");
 #endif
 
     }
@@ -1214,24 +1253,21 @@ ttm_cf(TTM* ttm, Frame* frame) /* Copy a function */
     utf32* oldname = frame->argv[2];
     Name* newstr = dictionaryLookup(ttm,newname);
     Name* oldstr = dictionaryLookup(ttm,oldname);
-    utf32* savename;
-    Name* savenext;
+    struct HashEntry saveentry;
 
     if(oldstr == NULL)
         fail(ttm,ENONAME);
     if(newstr == NULL) {
         /* create a new string object */
         newstr = newName(ttm);
-        newstr->name = strdup32(newname);
+        newstr->entry.name = strdup32(newname);
         dictionaryInsert(ttm,newstr);
     }
-    savenext = newstr->next;
-    savename = newstr->name;
+    saveentry = newstr->entry;
     *newstr = *oldstr;
+    newstr->entry = saveentry;
     /* Do fixup */
     if(newstr->body != NULL) {
-        newstr->next = savenext;
-        newstr->name = savename;
         newstr->body = strdup32(newstr->body);
     }
 }
@@ -1277,7 +1313,7 @@ ttm_ds(TTM* ttm, Frame* frame)
     if(str == NULL) {
         /* create a new string object */
         str = newName(ttm);
-        str->name = strdup32(frame->argv[1]);
+        str->entry.name = strdup32(frame->argv[1]);
         dictionaryInsert(ttm,str);
     } else {
         /* reset as needed */
@@ -1299,9 +1335,10 @@ ttm_es(TTM* ttm, Frame* frame) /* Erase string */
     unsigned int i;
     for(i=1;i<frame->argc;i++) {
         utf32* strname = frame->argv[i];
-        Name* prev = dictionaryRemove(ttm,strname);
-        if(prev != NULL) {
-            freeName(ttm,prev); /* reclaim the string */
+        Name* str = dictionaryLookup(ttm,strname);
+        if(str != NULL && !str->locked) {
+            dictionaryRemove(ttm,strname);
+            freeName(ttm,str); /* reclaim the string */
         }
     }
 }
@@ -1810,7 +1847,7 @@ ttm_dcl0(TTM* ttm, Frame* frame, int negative)
     if(cl == NULL) {
         /* create a new charclass object */
         cl = newCharclass(ttm);
-        cl->name = strdup32(frame->argv[1]);
+        cl->entry.name = strdup32(frame->argv[1]);
         charclassInsert(ttm,cl);
     }
     if(cl->characters != NULL)
@@ -2256,15 +2293,14 @@ ttm_names(TTM* ttm, Frame* frame) /* Obtain all Name instance names in sorted or
     /* First, figure out the number of names and the total size */
     len = 0;
     for(nnames=0,i=0;i<HASHSIZE;i++) {
-        if(ttm->dictionary[i] != NULL) {
-            Name* name = ttm->dictionary[i];
-            while(name != NULL) {
-                if(allnames || !name->builtin) {
-                    len += strlen32(name->name);
-                    nnames++;
-                }
-                name = name->next;
+	struct HashEntry* entry = ttm->dictionary.table[i].next;
+        while(entry != NULL) {
+	    Name* name = (Name*)entry;
+	    if(allnames || !name->builtin) {
+		len += strlen32(name->entry.name);
+                nnames++;
             }
+	    entry = entry->next;
         }
     }
 
@@ -2276,14 +2312,13 @@ ttm_names(TTM* ttm, Frame* frame) /* Obtain all Name instance names in sorted or
     if(names == NULL) fail(ttm,EMEMORY);
     index = 0;
     for(i=0;i<HASHSIZE;i++) {
-        if(ttm->dictionary[i] != NULL) {
-            Name* name = ttm->dictionary[i];
-            while(name != NULL) {
-                if(allnames || !name->builtin) {
-                    names[index++] = name->name;                
-                }
-                name = name->next;
+	struct HashEntry* entry = ttm->dictionary.table[i].next;
+        while(entry != NULL) {
+	    Name* name = (Name*)entry;
+            if(allnames || !name->builtin) {
+                names[index++] = name->entry.name;                
             }
+            entry = entry->next;
         }
     }
 
@@ -2423,10 +2458,11 @@ ttm_tf(TTM* ttm, Frame* frame) /* Turn Trace Off */
     } else { /* turn off all tracing */
         int i;
         for(i=0;i<HASHSIZE;i++) {
-            Name* name = ttm->dictionary[i];
-            while(name != NULL) {
+	    struct HashEntry* entry = ttm->dictionary.table[i].next;
+            while(entry != NULL) {
+		Name* name = (Name*)entry;
                 name->trace = 0;
-                name = name->next;
+                entry = entry->next;
             }
         }
         ttm->flags &= ~(FLAG_TRACE);
@@ -2479,12 +2515,10 @@ ttm_classes(TTM* ttm, Frame* frame) /* Obtain all character class names */
 
     /* First, figure out the number of classes */
     for(nclasses=0,i=0;i<HASHSIZE;i++) {
-        if(ttm->charclasses[i] != NULL) {
-            Charclass* charclass = ttm->charclasses[i];
-            while(charclass != NULL) {
-                nclasses++;
-                charclass = charclass->next;
-            }
+	struct HashEntry* entry = ttm->charclasses.table[i].next;
+	while(entry != NULL) {
+            nclasses++;
+            entry = entry->next;
         }
     }
 
@@ -2495,13 +2529,12 @@ ttm_classes(TTM* ttm, Frame* frame) /* Obtain all character class names */
     classes = (utf32**)malloc(sizeof(utf32*)*nclasses);
     if(classes == NULL) fail(ttm,EMEMORY);
     for(len=0,index=0,i=0;i<HASHSIZE;i++) {
-        if(ttm->charclasses[i] != NULL) {
-            Charclass* charclass = ttm->charclasses[i];
-            while(charclass != NULL) {
-                classes[index++] = charclass->name;
-                len += strlen32(charclass->name);
-                charclass = charclass->next;
-            }
+	struct HashEntry* entry = ttm->charclasses.table[i].next;
+	while(entry != NULL) {
+            Charclass* charclass = (Charclass*)entry;
+            classes[index++] = charclass->entry.name;
+            len += strlen32(charclass->entry.name);
+            entry = entry->next;
         }
     }
 
@@ -2644,8 +2677,8 @@ ttm_ttm_info_name(TTM* ttm, Frame* frame)
             *q++ = '\n';
             continue;       
         }
-        namelen = strlen32(str->name);
-        strcpy32(q,str->name);
+        namelen = strlen32(str->entry.name);
+        strcpy32(q,str->entry.name);
         q += namelen;
         if(str->builtin) {
             snprintf(info,sizeof(info),",%d,",str->minargs);
@@ -2714,8 +2747,8 @@ ttm_ttm_info_class(TTM* ttm, Frame* frame) /* Misc. combined actions */
     for(i=3;i<frame->argc;i++) {
         cl = charclassLookup(ttm,frame->argv[i]);
         if(cl == NULL) fail(ttm,ENONAME);
-        len = strlen32(cl->name);
-        strcpy32(q,cl->name);
+        len = strlen32(cl->entry.name);
+        strcpy32(q,cl->entry.name);
         q += len;
         *q++ = ' ';
         *q++ = LBRACKET;
@@ -2930,8 +2963,9 @@ defineBuiltinFunction1(TTM* ttm, struct Builtin* bin)
         function->novalue = 1;
     function->fcn = bin->fcn;
     /* Convert name to utf32 */
-    function->name = strdup32(binname);
-    dictionaryInsert(ttm,function);
+    function->entry.name = strdup32(binname);
+    if(!dictionaryInsert(ttm,function))
+	fatal(ttm,"Dictionary insertion failed");
 }
 
 static void
@@ -3074,6 +3108,29 @@ errstring(ERR err)
 }
 
 /**************************************************/
+/* Debug utility functions */
+
+#ifdef DEBUG
+
+static void
+dumpnames(TTM* ttm)
+{
+    int i;
+    for(i=0;i<HASHSIZE;i++) {
+	struct HashEntry* entry = ttm->dictionary.table[i].next;
+	fprintf(stderr,"[%3d]",i);
+        while(entry != NULL) {
+	    fprintf(stderr," ");	
+	    dbgprint32(entry->name,'|');
+            entry = entry->next;
+        }
+	fprintf(stderr,"\n");	
+    }
+}
+
+#endif
+
+/**************************************************/
 /* Utility functions */
 
 
@@ -3186,6 +3243,10 @@ traceframe(TTM* ttm, Frame* frame, int traceargs)
     char tag[4];
     unsigned int i = 0;
 
+    if(frame->argc == 0) {
+	fprintf(stderr,"#<empty frame>\n");
+	return;
+    }
     tag[i++] = (char)ttm->sharpc;
     if(!frame->active)
         tag[i++] = (char)ttm->sharpc;
@@ -3254,39 +3315,45 @@ dumpstack(TTM* ttm)
 }
 
 static void
+dbgprint32c(utf32 c, char quote)
+{
+    if(ismark(c)) {
+        char_t* p;
+        char info[16+1];
+        if(iscreate(c))
+            strcpy(info,"^00");
+        else /* segmark */
+            snprintf(info,sizeof(info),"^%02d",(int)(c & 0xFF));
+        for(p=info;*p;p++) fputc(*p,stderr);
+    } else if(iscontrol(c)) {
+        fputc32('\\',stderr);
+        switch (c) {
+        case '\r': fputc('r',stderr); break;
+        case '\n': fputc('n',stderr); break;
+        case '\t': fputc('t',stderr); break;
+        case '\b': fputc('b',stderr); break;
+        case '\f': fputc('f',stderr); break;
+        default: {
+            /* dump as a decimal character */
+            char digits[4];
+            snprintf(digits,sizeof(digits),"%d",(int)c);
+            fprintf(stderr,"%s",digits);
+            } break;
+        }
+    } else {
+        if(c == quote) fputc('\\',stderr);
+        fputc32(c,stderr);
+    }
+}
+
+static void
 dbgprint32(utf32* s, char quote)
 {
     utf32 c;
     if(quote != NUL)
         fputc(quote,stderr);
     while((c=*s++)) {
-        if(ismark(c)) {
-            char_t* p;
-            char info[16+1];
-            if(iscreate(c))
-                strcpy(info,"^00");
-            else /* segmark */
-                snprintf(info,sizeof(info),"^%02d",(int)(c & 0xFF));
-            for(p=info;*p;p++) fputc(*p,stderr);
-        } else if(iscontrol(c)) {
-            fputc32('\\',stderr);
-            switch (c) {
-            case '\r': fputc('r',stderr); break;
-            case '\n': fputc('n',stderr); break;
-            case '\t': fputc('t',stderr); break;
-            case '\b': fputc('b',stderr); break;
-            case '\f': fputc('f',stderr); break;
-            default: {
-                /* dump as a decimal character */
-                char digits[4];
-                snprintf(digits,sizeof(digits),"%d",(int)c);
-                fprintf(stderr,"%s",digits);
-                } break;
-            }
-        } else {
-            if(c == quote) fputc('\\',stderr);
-            fputc32(c,stderr);
-        }
+	dbgprint32c(c,quote);
     }
     if(quote != NUL)
         fputc(quote,stderr);

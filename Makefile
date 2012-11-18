@@ -15,9 +15,10 @@ ttm.txt::
 TESTPROG=-f test.ttm
 TESTARGS=a b c
 TESTRFLAG=-r test.rs
+TESTCMD=./ttm ${TESTPROG} ${TESTRFLAG} ${TESTARGS}
 
 check:: ttm.exe
 	rm -f ./test.output
-	./ttm ${TESTRFLAG} ${TESTPROG} ${TESTARGS} >& ./test.output
+	${TESTCMD} >& ./test.output
 	diff -w ./test.baseline ./test.output
 
