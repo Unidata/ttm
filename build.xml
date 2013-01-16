@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<project name="ttm" default="all" basedir=".">
+
+<!-- Source directories -->
+<property name="src"	     location="src/main/java/ucar/ttm"/>
+
+<!-- Build Directories -->
+<property name="build.dir" value="target"/>
+<property name="build.classes"	location="${build.dir}/classes"/>
+
+<!-- Test cases and baselines -->
+<property name="test.input"	      location="test.ttm"/>
+<property name="test.rs"	      location="test.rs"/>
+<property name="test.baseline"	      location="test.baseline"/>
+<property name="test.output"	      location="test.output"/>
+<property name="test.error"	      location="test.error"/>
+
+<!-- Where to put test case output -->
+<property name="results.dir"	location="${build.dir}/results"/>
+
+<!-- jar files -->
+<property name="ttm.jar" value="ttm.jar"/>
+<property name="main.class" value="ucar.ttm.TTM"/>
+
+<!-- Misc. -->
+<property name="javadocs.dir" value="docs"/>
+
+
+<!-- BUILD TASKS  -->
+
+<target name="all" depends="jar"/>
+
+<!-- Target: init - creates the build dirctory tree. -->
+<target name="init" description="Prepare all build directories.">
+    <mkdir dir="${build.dir}"/>
+    <mkdir dir="${build.classes}"/>
+    <mkdir dir="${javadocs.dir}"/>
+</target>
+
+<target name="clean">
+    <delete includeemptydirs="true" failonerror="false">
+        <fileset dir="${build.dir}"/>
+    </delete>
+    <delete file="${test.output}"/>
+    <delete file="${test.error}"/>
+</target>
+
+<target name="compile" depends="init">
+    <javac
+	destdir="${build.classes}"
+	includeAntRuntime="false"
+	srcdir="${src}"
+    />
+</target>
+
+<!-- Construct the ttm.jar file -->
+<target name="jar" depends="compile">
+    <jar destfile="${build.dir}/${ttm.jar}" basedir="${build.classes}">
+	<manifest>
+	<attribute name="Manifest-Version" value="1.0"/>
+	<attribute name="Main-class" value="${main.class}"/>
+	</manifest>
+    </jar>
+</target>
+
+<!-- Build the javadocs -->
+<target name="javadocs" depends="compile">
+    <javadoc
+             destdir="${javadocs.dir}"
+	     private="true">
+	<fileset dir="${src}"/>
+    </javadoc>
+</target>
+
+<target name="check" depends="test"/>
+<target name="test" depends="clean,runtest,compare"/>
+
+<target name="runtest" depends="jar">
+    <!-- execute to produce test.output -->
+    <java 
+	  jar="${build.dir}/${ttm.jar}"
+	  output="${test.output}"
+          fork="true"
+          failonerror="true">
+	<jvmarg value="-Ddebug=T"/>
+	<jvmarg value="-Dprogram=${test.input}"/>
+	<jvmarg value="-Drsfile=${test.rs}"/>
+	<arg value="a"/>
+	<arg value="b"/>
+	<arg value="c"/>
+    </java>
+</target>
+
+<target name="compare">
+    <!-- compare test.output to test.baseline -->
+    <condition property="samefile" value="true" else="false">
+	<filesmatch file1="${test.baseline}" file2="${test.output}" textfile="true"/>
+    </condition>
+    <echo message="match=${samefile}"/>
+</target>
+
+</project>

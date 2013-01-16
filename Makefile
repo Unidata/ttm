@@ -1,12 +1,16 @@
 .PHONEY: check
 
+CC=gcc
+CCWARN=-Wsign-compare -Wall -Wdeclaration-after-statement 
+CCDEBUG=-g -O0
+
 all: ttm.exe
 
 clean::
 	rm -f ttm.exe ttm ttm.txt test.output tmp
 
 ttm.exe: ttm.c
-	gcc -Wsign-compare -Wall -Wdeclaration-after-statement -g -O0 -o ttm ttm.c
+	${CC} ${CCWARN} ${CCDEBUG} -o ttm ttm.c
 
 ttm.txt::
 	rm -f ttm.txt
@@ -21,4 +25,3 @@ check:: ttm.exe
 	rm -f ./test.output
 	${TESTCMD} >& ./test.output
 	diff -w ./test.baseline ./test.output
-

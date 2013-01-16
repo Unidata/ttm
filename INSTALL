@@ -1,0 +1,38 @@
+There are two versions of the ttm interpreter.
+One is written in C and one is written Java.
+
+-------------
+C Interpreter
+-------------
+The C interpreter is deliberately contained
+in a single, self contained C file: ttm.c.
+A Makefile exists to create ttm.ex
+At the beginning of ttm.c, there are some directives
+that control features of the interpreter.
+Currently the only directives are as follows:
+1. #define HAVE_MEMMOVE - define this if your C compiler/library
+   supports the memmove() function, undefine otherwise.
+
+You may also need to change the following lines in the Makefile.
+1. CC - to specify the C compiler
+2. CCWARN - compile time checks
+3. CCDEBUG - to set the optimization and debug levels
+
+Otherwise, compiling is as simple as "${CC} -o ttm ttmc."
+
+Windows Support
+---------------
+A Windows solutions file is defined in the directory
+"Windows". It currently will build and run under Visual
+Studio C++ 2010, but the resulting ttm.exe fails when run
+standalone. Any help in fixing this would be Appreciated.
+
+-------------
+Java Interpreter
+-------------
+The Java implementation is contained
+in the single file src/main/java/ucar/ttm/TTM.java.
+An ant build.xml file exists to compile it.
+The Java version is noticably slower than the C version.
+
+

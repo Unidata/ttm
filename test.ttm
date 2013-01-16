@@ -19,6 +19,7 @@
 ##<ttm;info;name;d>
 #<ndf;d;d defined;d not defined>
 #<ndf;dd;dd defined;dd not defined>
+#<argc>
 #<argv;2>
 #<ad;3;4;7>
 #<su;1;17>
@@ -92,9 +93,11 @@
 ##<isc;;testisc;match;no match>
 ##<ttm;info;name;testisc>
 #<ds;testscn;012345>
-##<scn;234;testscn;not substring>
+##<scn;01;testscn;not substring>
 ##<ttm;info;name;testscn>
 ##<scn;234;testscn;not substring>
+##<ttm;info;name;testscn>
+##<scn;02;testscn;not substring>
 ##<ttm;info;name;testscn>
 ##<ctime;135258979000>
 #<es;#<zlc;##<names>>>
@@ -141,12 +144,13 @@
 #<tn>
 ##<testtn;y4>
 #<pf>
-##<psr;reading line1>
+##<psr;reading line1;stderr>
 ##<rs>
 #<cm;.>
 ##<rs;reading line1>
 ##<rs;reading line3>
-#<cm;\n>
+#<cm;
+>
 #<comment;<Need to test #<include>>>
 #<def;n!;N;<#<lt;N;2;1;<#<mu;N;#<n!;#<su;N;1>>>>>>>
 #<n!;3>

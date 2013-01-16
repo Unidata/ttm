@@ -8,12 +8,11 @@ ttm
 [-d <i>string</i>]
 [-D <i>name=string</i>]
 [-e <i>string</i>]
-[-f <i>inputfile</i>]
+[-f|-p <i>programfile</i>]
 [-i]
 [-I <i>directory</i>]
 [-o <i>file</i>]
 [-r <i>rsfile</i>]
-[-S <i>positive-integer</i>]
 [-V]
 [-X <i>tag=value</i>]
 [--]
@@ -45,9 +44,9 @@ Exactly equivalent to -e #&lt;ds;name;string&gt;.
 <dd>
 Scan the string and execute any macro invocations. Any output
 left after execution is discarded.
-<p><dt><b>-f <i>inputfile</i></b><br>
+<p><dt><b>-f|-p <i>programfile</i></b><br>
 <dd>
-Specify the input file to execute.
+Specify the program (input) file to execute.
 Note that this is not the same as the file
 specified by the -r flag.
 <p><dt><b>-i</i></b><br>
@@ -99,6 +98,28 @@ processing. Anythinf after the -- is treated as an argument.
 <dd>
 Specify arguments that are accessible using the <i>#&lt;argv&gt;</i> function.
 </dl>
+
+<h2>Java Command Line Format</h2>
+The java invocation of ttm differs from the C version as follows.
+<ul>
+<li> Invoke using the command <i>java -jar ttm.jar <options> args...</i>.
+<li> The options are specified using the java <i>-D</i> command line mechanism.
+The options are encoded as follows.
+<ul>
+<li>-Dexec=string &mdash equivalent to the C <i>-e</i> flag;
+note that only one occurrence is allowed.
+<li>-Dincludes=dir,dir... &mdash equivalent to the C <i>-I</i> flag;
+note that only one occurrence is allowed.
+<li>-Dinput=filepath &mdash equivalent to the C <i>-f</i> flag.
+<li>-Doutput=filepath &mdash equivalent to the C <i>-o</i> flag.
+<li>-Dinteractive &mdash equivalent to the C <i>-i</i> flag.
+<li>-Drsfile=filepath &mdash equivalent to the C <i>-r</i> flag.
+<li>-Dverbose &mdash equivalent to the C <i>-V</i> flag.
+<li>-DX=string &mdash equivalent to the C <i>-X</i> flag.
+</ul>
+Note that the C <i>-D</i> flag is missing; instead you must use the -Dexec flag
+and the #&lt;ds&gt; function.
+</ul>
 
 <h2>OVERALL OPERATION</h2>
 The <b>ttm</b> macro processor
@@ -358,9 +379,20 @@ then one should use "-e #&lt;include;filename&gt;" on the command line.
 <b>Specification: </b>argv,1,1,V<br>
 <b>Invocation: </b><td>#&lt;argv;i&gt;<br>
 Return the i'th command line argument
-starting at 0 (like java, not like C).
+starting at 1 (like C).
 The parameter i should be a a non-negative
-integer.
+integer. An argument of zero will return
+the invoking command's name. If the index
+is out of bounds, then a fatal error occurs
+=> use the #&lt;argc&gt; function.
+
+<p>
+<b><u>argc</u></b><br>
+<b>Specification: </b>argc,0,0,V<br>
+<b>Invocation: </b><td>#&lt;argc&gt;<br>
+Return the number of command line arguments,
+including the 0'th (like C).
+
 
 <p>
 <b><u>classes</u></b><br>
@@ -651,7 +683,10 @@ http://www.apache.org/licenses/LICENSE-2.0.
 </a>
 
 <h2>VERSION</h2>
-1.0
+<ul>
+<li>C version 1.0
+<li>Java version 1.0
+</ul>
 
 <h2>ACKNOWLEDGEMENTS</h2>
 
