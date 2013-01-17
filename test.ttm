@@ -144,7 +144,8 @@
 #<tn>
 ##<testtn;y4>
 #<pf>
-##<psr;reading line1;stderr>
+##<psr;reading line1
+;stderr>
 ##<rs>
 #<cm;.>
 ##<rs;reading line1>

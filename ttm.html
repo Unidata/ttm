@@ -6,11 +6,9 @@ ttm - macro processor
 <h2>SYNOPSIS</h2>
 ttm
 [-d <i>string</i>]
-[-D <i>name=string</i>]
 [-e <i>string</i>]
 [-f|-p <i>programfile</i>]
 [-i]
-[-I <i>directory</i>]
 [-o <i>file</i>]
 [-r <i>rsfile</i>]
 [-V]
@@ -21,7 +19,8 @@ ttm
 <h2>DESCRIPTION</h2
 <b>TTM</b> (or <b>ttm</b>)
 is a string oriented, general purpose macro processing
-developed in 1968 by Steven H. Caine and E. Kent Gordon at the California Institute of Technology.
+developed in 1968 by Steven H. Caine and E. Kent Gordon at
+the California Institute of Technology.
 
 The following description is taken from the original TTM reference manual[1].
 TTM Is a recursive, interpretive language designed primarily
@@ -36,40 +35,49 @@ Except where indicated, all flags may be repeated multiple times.
 <dt><b>-d <i>string</i></b><br>
 <dd>
 Set a variety of debug options as encoded in the string.
-<p><dt><b>-D <i>name=string</i></i></b><br>
-<dd>
-Predefine the name as a function whose body is the string.
-Exactly equivalent to -e #&lt;ds;name;string&gt;.
-<p><dt><b>-e <i>string</i></b><br>
+<p>
+<dt><b>-e <i>string</i></b><br>
 <dd>
 Scan the string and execute any macro invocations. Any output
 left after execution is discarded.
-<p><dt><b>-f|-p <i>programfile</i></b><br>
+<p>
+<dt><b>-p <i>programfile</i></b><br>
 <dd>
-Specify the program (input) file to execute.
+Read and scan the contents of the program file.
+Any output is discarded.
+<p>
+<dt><b>-i</i></b><br>
+<dd>
+After executing any -e or -p options,
+enter the read-eval loop to execute commands interactively.
+If not specified, then the interpreter will terminate execution
+after all other command line arguments have been processed.
+<p>
+<dt><b>-f <i>inputfile</i></b><br>
+<dd>
+Specify the input file. This file will be scanned
+and any resulting output will be sent to
+the -o file, if specified, otherwise to standard output.
 Note that this is not the same as the file
 specified by the -r flag.
-<p><dt><b>-i</i></b><br>
-<dd>
-After executing any -D and -e options and executing any input file,
-enter the read-eval loop to execute commands interactively.
-<p><dt><b>-I <i>directory</i></b><br>
-<dd>
-Append the directory to the include path.
-<p><dt><b>-o <i>file</i></b><br>
+<p>
+<dt><b>-o <i>file</i></b><br>
 <dd>
 Send all output to the specified file. If not specified, then
 output is sent to standard output.
-<p><dt><b>-r <i>rsfile</i></b><br>
+<p>
+<dt><b>-r <i>rsfile</i></b><br>
 <dd>
 Specify a file from which #&lt;rs&gt; will read its input.
-If not specified, stdin is assumed.
+If not specified, standard input is assumed.
 Note that this is not the same as the file
 specified by the -f flag.
-<p><dt><b>-V</b><br>
+<p>
+<dt><b>-V</b><br>
 <dd>
 Output the version number of ttm and then exit.
-<p><dt><b>-X <i>tag=value</i></b><br>
+<p>
+<dt><b>-X <i>tag=value</i></b><br>
 <dd>
 Set a ttm interpreter resource limit.
 The tag is a single character indicating what resource
@@ -86,15 +94,17 @@ Set the internal stack size. The default provides for a maximum
 depth of 64. It is a good idea to keep this number small
 so that runaway recursion can be detected quickly.
 <tr valign=top><td>x<td>Executions<td>integer&gt;0<td>
-Limit the number of executions. The default is 2^16.
+Limit the number of executions. The default is 2^20.
 The purpose is to catch tail recursive executions that
 do not eat up space.
 </table>
-<p><dt><b>--</i></b><br>
+<p>
+<dt><b>--</i></b><br>
 <dd>
 Signal the end of options and disable further option
-processing. Anythinf after the -- is treated as an argument.
-<p><dt><b><i>arg...</i></b><br>
+processing. Anything after the -- is treated as an argument.
+<p>
+<dt><b><i>arg...</i></b><br>
 <dd>
 Specify arguments that are accessible using the <i>#&lt;argv&gt;</i> function.
 </dl>
@@ -102,40 +112,50 @@ Specify arguments that are accessible using the <i>#&lt;argv&gt;</i> function.
 <h2>Java Command Line Format</h2>
 The java invocation of ttm differs from the C version as follows.
 <ul>
-<li> Invoke using the command <i>java -jar ttm.jar <options> args...</i>.
+<li> Invoke using the command <i>java <options> -jar ttm.jar args...</i>.
+<li> Options may only be specified once.
 <li> The options are specified using the java <i>-D</i> command line mechanism.
 The options are encoded as follows.
 <ul>
-<li>-Dexec=string &mdash equivalent to the C <i>-e</i> flag;
-note that only one occurrence is allowed.
-<li>-Dincludes=dir,dir... &mdash equivalent to the C <i>-I</i> flag;
-note that only one occurrence is allowed.
+<li>-Dexec=string &mdash equivalent to the C <i>-e</i> flag.
+<li>-Dinteractive &mdash equivalent to the C <i>-i</i> flag.
+<li>-Dprogram=filepath &mdash equivalent to the C <i>-p</i> flag.
 <li>-Dinput=filepath &mdash equivalent to the C <i>-f</i> flag.
 <li>-Doutput=filepath &mdash equivalent to the C <i>-o</i> flag.
-<li>-Dinteractive &mdash equivalent to the C <i>-i</i> flag.
 <li>-Drsfile=filepath &mdash equivalent to the C <i>-r</i> flag.
 <li>-Dverbose &mdash equivalent to the C <i>-V</i> flag.
-<li>-DX=string &mdash equivalent to the C <i>-X</i> flag.
+<li>-DX=string &mdash equivalent to the C <i>-X</i> flag. The string
+is of the form <tag>:<value>,<tag>:<value>...
 </ul>
-Note that the C <i>-D</i> flag is missing; instead you must use the -Dexec flag
-and the #&lt;ds&gt; function.
 </ul>
 
 <h2>OVERALL OPERATION</h2>
-The <b>ttm</b> macro processor
-scans the input file and executes any macro invocations encountered.
-If no file is specified or if file is '-', standard input is read.
-Note that in this latter case, all of standard input will be read
-up to EOF and then processing will commence.
+The <b>ttm</b> macro processor starts
+by scanning any commands specified by the
+<i>-e</i> or <i>-p</i> options.
+Any result is discarded.
+The idea is that these options establish the environment
+in which to scan the input file.
 <p>
-It is assumed that TTM is given a text file containing some combination
+Next, the interpreter scans the <i>-f</i> input file, if specified,
+and executes any macro invocations encountered. Any resulting output
+is sent to the file specified by the <i>-o</i> option. If not specified,
+the output is sent to standard output.
+<p>
+Finally, if the -i flag is specified, then the interpreter goes
+into a read-eval loop. It reads from the standard input,
+scans the input and repeats.
+If no <i>-i</i> is specified, the interpreter exits.
+<p>
+Any arguments after the file name are provided to ttm using the
+<i>#&lt;argv;i&gt;</i> function.
+<p>
+It is assumed that TTM is given a text file (via e.g. -f)
+containing some combination
 of ordinary text and TTM function calls (i.e. invocations).
 The text is scanned character by character. Any ordinary text is passed
 to the output unchanged (except when escaped).
 If a TTM function is encountered, it is collected and executed.
-<p>
-Any arguments after the file name are provided to ttm using the
-<i>#&lt;argv;i&gt;</i> function.
 
 <h2>SYNTAX AND SEMANTICS</h2>
 The general form of a TTM function call looks like this.

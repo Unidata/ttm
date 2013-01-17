@@ -9,8 +9,8 @@
 <property name="build.classes"	location="${build.dir}/classes"/>
 
 <!-- Test cases and baselines -->
-<property name="test.input"	      location="test.ttm"/>
-<property name="test.rs"	      location="test.rs"/>
+<property name="test.program"	      location="test.ttm"/>
+<property name="test.input"	      location="test.rs"/>
 <property name="test.baseline"	      location="test.baseline"/>
 <property name="test.output"	      location="test.output"/>
 <property name="test.error"	      location="test.error"/>
@@ -79,12 +79,12 @@
     <!-- execute to produce test.output -->
     <java 
 	  jar="${build.dir}/${ttm.jar}"
-	  output="${test.output}"
           fork="true"
+	  output="${test.output}"
           failonerror="true">
 	<jvmarg value="-Ddebug=T"/>
-	<jvmarg value="-Dprogram=${test.input}"/>
-	<jvmarg value="-Drsfile=${test.rs}"/>
+	<jvmarg value="-Dprogram=${test.program}"/>
+	<jvmarg value="-Dinput=${test.input}"/>
 	<arg value="a"/>
 	<arg value="b"/>
 	<arg value="c"/>

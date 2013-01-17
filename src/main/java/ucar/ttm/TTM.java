@@ -36,7 +36,7 @@ existing Java char and Character types.
 
 Note also that it is assumed that all C string constants
 in this file are restricted to US-ASCII, which is a subset
-of both UTF-8 and ISO-8859-1.
+of both UTF-8.
 
 Use is also made of the UTF-16 so-called "private-use" characters
 -- see "http://en.wikipedia.org/wiki/Private_Use_(Unicode)" --
@@ -45,6 +45,12 @@ to encode segment and creation marks.
 Note also that it would be theoretically possible to use
 Java reflection to dynamically load new ttm builtin functions.
 
+----------------------------------------
+Differences (vis-a-vis C implementation)
+----------------------------------------
+1. ISO8859 is not supported.
+2. Command line options may not be repeated
+   (due to using the Java -D flag).
 */
 
 public class TTM
@@ -58,29 +64,23 @@ static final String ARGV0 = "TTM"; //pretend
 static final String VERSION = "1.0";
 
 static final boolean DEBUG = false;
-static final boolean USE_ISO8859 = false;
 
-// Two supported character sets
 static final Charset UTF8 = Charset.forName("UTF-8");
-static final Charset ISO8859 = Charset.forName("ISO-8859-1");
 
 static final Calendar CALENDAR = Calendar.getInstance();
 
-// Use ISO-8859-1 Character set for input/output
-static boolean ISO_8859 = false;
-
 // Assign special meaning to some otherwise illegal utf-16 character values
-
 static final char SEGMARK = '\uE000';
 static final char CREATE  = '\uF000';
 
+// Limits
 static final int MAXMARKS = 62;
 static final int MAXARGS = 63;
 static final int ARB = MAXARGS;
-static final int MAXINCLUDES = 1024;
 static final int MAXEOPTIONS = 1024;
 static final int MAXINTCHARS = 32;
 
+// Character mnemonics
 static final char NUL = '\u0000';
 static final char COMMA = ',';
 static final char LPAREN = '(';
@@ -90,8 +90,6 @@ static final char RBRACKET = ']';
 static final char EOS = NUL;
 
 static final int EOF = -1;
-
-static final int MAXCHAR8859 = 255;
 
 // The following are enforced mostly in order
 // to prevent run-away computations.
@@ -107,12 +105,11 @@ static final int CREATELEN = 4; //# of digits for a create mark
 
 static final int HASHSIZE = 128;
 
-// Mnemonics
+// Other Mnemonics
 static final boolean NESTED = true;
 static final boolean KEEPESCAPE = true;
 static final boolean TOSTRING = true;
 static final boolean TRACING = true;
-static final boolean PRINTALL = true;
 
 // TTM Flags */
 static final int FLAG_EXIT = 1;
@@ -151,7 +148,7 @@ ENOTNEGATIVE(20),      //Integer value must be greater than or equal to zero
 ESTACKOVERFLOW(30),
 ESTACKUNDERFLOW(31),
 EBUFFERSIZE(32),    // Buffer overflow
-EMANYINCLUDES(33),  // Too many includes
+EMANYINCLUDES(33),  // Too many includes (obsolete)
 EINCLUDE(34),       // Cannot read Include file
 ERANGE(35),         // index out of legal range
 EMANYPARMS(36),     // #parameters > MAXARGS
@@ -162,7 +159,6 @@ EUTF32(40),         // Illegal utf-32 character set
 ETTMCMD(41),        // Illegal #<ttm> command
 ETIME(42),          // gettimeofday failed
 EEXECCOUNT(43),     // too many execution calls
-ENOTNEG(44),        //Integer value must be greater than or equal to zero
 EOTHER(99);         // Default case
 private int code;
 ERR(int i) {this.code = i;}
@@ -219,7 +215,7 @@ static class Limits {
 
 /**
 Java does not have functions as first class
-object, so use anonymous classes to simulate.
+objects, so use anonymous classes to simulate.
 */
 static interface TTMFCN
 {
@@ -327,8 +323,6 @@ Stack<Frame> stack;
 Map<String,Name> dictionary;
 Map<String,Charclass> charclasses;
 
-Charset charset;
-
 // Get the startup time to determine xtime
 long starttime;
 
@@ -341,7 +335,6 @@ Reader stdin;
 // Command line values
 
 Limits limits;
-List<String> includes = new ArrayList<String>();
 List<String> argv = new ArrayList<String>();
 
 PrintWriter output;
@@ -365,18 +358,17 @@ public TTM()
     this.stack = new Stack<Frame>();
     this.dictionary = new HashMap<String,Name>();
     this.charclasses = new HashMap<String,Charclass>();
-    this.charset = (USE_ISO8859?ISO8859:UTF8);
     this.starttime = System.nanoTime();
-    this.stdout = new PrintWriter(new OutputStreamWriter(System.out,this.charset));
+    this.stdout = new PrintWriter(
+                      new OutputStreamWriter(System.out,UTF8),true);
     if(testing)
 	this.stderr = stdout;
     else
-        this.stderr = new PrintWriter(new OutputStreamWriter(System.err,this.charset));
-    this.stdin = new InputStreamReader(System.in,this.charset);
+        this.stderr = new PrintWriter(new OutputStreamWriter(System.err,UTF8),true);
+    this.stdin = new InputStreamReader(System.in,UTF8);
     if(DEBUG)
         this.flags |= FLAG_TRACE;
     setLimits(DFALTBUFFERSIZE,DFALTSTACKSIZE,DFALTEXECCOUNT);
-    this.includes = new ArrayList<String>();
     this.argv = new ArrayList<String>();
     this.output = this.stdout;
     this.isstdout = true;
@@ -412,9 +404,6 @@ public void setLimits(long buffersize, long stacksize, long execcount)
     setLimits(limits);
 }
 
-public List<String> getIncludes() {return this.includes;}
-public void addInclude(String include)
-    {if(!includes.contains(include)) this.includes.add(include);}
 public List<String> getArgv() {return this.argv;}
 
 public void addArgv(String arg)
@@ -434,7 +423,6 @@ public boolean isstdin() {return this.isstdin;}
 // Misc.
 public int getExitcode() {return this.exitcode;}
 public int getFlags() {return this.flags;}
-public Charset getCharset() {return this.charset;}
 public PrintWriter getStdout() {return this.stdout;}
 public PrintWriter getStderr() {return this.stderr;}
 public Reader getStdin() {return this.stdin;}
@@ -466,7 +454,7 @@ evalloop()
         result = scan(text.toString());
 	if(testFlag(FLAG_EXIT) || eof)
 	    break;
-	printstring(this.output,result,PRINTALL);
+	printstring(this.output,result);
     }
 }
 
@@ -738,13 +726,22 @@ call(Frame frame, String body)
 //////////////////////////////////////////////////
 // Built-in Support Procedures
 
+/**
+Print a string to the specified output.
+If a segment mark or create mark is encountered,
+it is output in a special readable form.
+
+@param output  the stream to which the string is printed
+@param s the string to output
+*/
+
 void
-printstring(PrintWriter output, String s, boolean printall)
+printstring(PrintWriter output, String s)
 {
     int slen = s.length();
     if(s == null || slen == 0) return;
     s = s + EOS;
-    char prev = EOS;
+
     for(int i=0;i<slen;i++) {
 	char c = s.charAt(i);   
         if(isescape(c)) {
@@ -753,26 +750,20 @@ printstring(PrintWriter output, String s, boolean printall)
             c = convertEscapeChar(c);
         }
         if(c != EOS) {
-            if(printall || c == '\n' || !iscontrol(c)) {
-                if(ismark(c)) {
-		    String smark;
-                    if(iscreate(c))
-                        smark = "^00";
-                    else {// segmark
-                        int mark = ((int)c) & 0xFF;
-			smark = String.format("^%02d",mark);
-                    }
-		    fputs(smark,output);
-                } else
-                    fputc(c,output);
-            }
+	    if(ismark(c)) {
+		String smark;
+                if(iscreate(c))
+                    smark = "^00";
+                else {// segmark
+                    int mark = ((int)c) & 0xFF;
+		    smark = String.format("^%02d",mark);
+                }
+		fputs(smark,output);
+            } else
+                fputc(c,output);
         }
-        prev = c;
     }
-    if(prev != '\n')
-        fputc('\n',output);
     output.flush();
-
 }
 
 //////////////////////////////////////////////////
@@ -1584,13 +1575,6 @@ invoke(Frame frame, StringBuilder result) // ? Compare logical less-than
 
 // Peripheral Input/Output Operations
 
-/**
-In order to a void spoofing,
-the string to be output is
-modified to remove all control
-characters except '\n', and a final
-'\n' is forced.
-*/
 final TTMFCN ttm_ps = new TTMFCN() {
 public void
 invoke(Frame frame, StringBuilder result) // Print a Name
@@ -1602,21 +1586,14 @@ invoke(Frame frame, StringBuilder result) // Print a Name
         target = stderr;
     else
         target = stdout;
-    printstring(target,s,!PRINTALL);
+    printstring(target,s);
 }
 }; //ttm_ps
 
-/**
-In order to avoid spoofing, the
-string 'ttm>' is output before reading
-if reading from stdin.
-*/
 final TTMFCN ttm_rs = new TTMFCN() {
 public void
 invoke(Frame frame, StringBuilder result) // Read a Name
 {
-    if(isstdin)
-        {stdout.print("ttm>");stdout.flush();}
     for(;;) {
         int c=fgetc(rsinput);
         if(c == EOF) break;
@@ -1878,41 +1855,18 @@ invoke(Frame frame, StringBuilder result) // Un-Lock a function from being delet
 }
 }; //ttm_uf
 
-/**
-For security reasons, we impose the constraint
-that the file name must only be accessible
-through one of the include paths.
-This has the possibly undesirable consequence
-that if the user used #<include>, then the user
-must also specify a -I on the command line.
-*/
 final TTMFCN ttm_include = new TTMFCN() {
 public void
 invoke(Frame frame, StringBuilder result)  // Include text of a file
 {
-    String suffix = frame.argv[1];
-    int suffixlen = suffix.length();
-    if(suffixlen == 0)
-        fail(ERR.EINCLUDE);
-    if(suffix.charAt(0) == '/' || suffix.charAt(0) == '\\') {
-        suffix = suffix.substring(1);
-        suffixlen--;
-    }
-    // convert
-    // search the -I list
-    File fi = null;
-    String filename = null;
-    for(String path: includes) {
-        filename = path;
-        filename += "/";
-        filename += suffix;
-        fi = new File(filename);
-        if(fi.canRead()) break;
-    }
-    if(fi == null)
+    String filename = frame.argv[1];
+    if(filename.length() == 0)
+	fail(ERR.EINCLUDE);
+    File fi = new File(filename);
+    if(!fi.canRead())
         fail(ERR.EINCLUDE);
     try {
-        String text = readfile(filename,charset);
+        String text = readfile(filename);
         result.append(text);
     } catch (IOException ioe) {
         fail(ERR.EIO);
@@ -2598,7 +2552,6 @@ readbalanced(StringBuilder buffer)
 
 /**
 Output a single character to file f
-using whatever charset with which f was initialized
 
 @param c character to output
 @param f the outputstream
@@ -2618,7 +2571,6 @@ fputc(char c, Writer f)
 
 /**
 Output a string to file f
-using whatever charset with which f was initialized
 
 @param s  string to output
 @param f the outputstream
@@ -2635,7 +2587,6 @@ fputs(String s, Writer f)
 
 /**
 Read a single character from file f
-using whatever charset with which f was initialized
 
 @param f the inputstream
 
@@ -2671,23 +2622,20 @@ usage(final String msg)
 "usage: java"
 + "[-Ddebug=string]"
 + "[-Dexec=string]"
-+ "[-Dinput=file|-Dprogram=file]"
-+ "[-Dinteractive]"
-+ "[-Dinclude(s)=directory]"
++ "[-Dprogram=file]"
 + "[-Doutput=file]"
-+ "[-Drsfile=file]"
++ "[-Dinput=file]"
++ "[-Dinteractive]"
 + "[-Dversion]"
-+ "[-DX=tag:value...]"
++ "[-DX=tag:value,...]"
 + " -jar jar [arg...]\n");
     if(msg != null) System.exit(1); else System.exit(0);
 }
 
 /**
 Read the contents of a file assuming
-it has a specified charset.
 
 @param filename file to read, '-' => stdin.
-@param charset the assumed charset for the file
 
 @return The contents of the file as a string
 
@@ -2695,24 +2643,19 @@ it has a specified charset.
 */
 
 static String
-readfile(String filename, Charset charset)
+readfile(String filename)
     throws IOException
 {
     InputStream input = null;
-    boolean isstdin = ("-".equals(filename));
-
-    if(isstdin)
-        input = System.in;
-    else
-        input = new FileInputStream(filename);
-    InputStreamReader rdr = new InputStreamReader(input,charset);
+    input = new FileInputStream(filename);
+    InputStreamReader rdr = new InputStreamReader(input,UTF8);
 
     int c = 0;
     StringBuilder buf = new StringBuilder();
     while((c=rdr.read()) >= 0) {
         buf.append((char)c);
     }
-    if(!isstdin) input.close();
+    input.close();
     return buf.toString();
 }
 
@@ -2757,12 +2700,10 @@ main(String[] argv)
 {
     // Get the -D flags from command line
     String execcmd = System.getProperty("exec");
-    String executefilename = System.getProperty("input");
-    if(executefilename == null)
-	executefilename = System.getProperty("program");
+    String executefilename = System.getProperty("program");
     String outputfilename = System.getProperty("output");
+    String inputfilename = System.getProperty("input");
     boolean interactive = (System.getProperty("interactive") != null);
-    String rsfilename = System.getProperty("rsfile");
 
     String version = System.getProperty("version");
     if(version != null) {
@@ -2824,16 +2765,6 @@ main(String[] argv)
     // set any X and debug flags
     ttm.setLimits(buffersize,stacksize,execcount);
 
-    String value =  System.getProperty("include");
-    if(value == null) value = System.getProperty("includes");
-    if(value != null) {
-        String[] paths = value.split("[ \t]*,[ \t]*");
-        for(String path: paths) {
-            if(path.length() > 0)
-                ttm.addInclude(path);
-        }
-    }
-
     // Collect any args for #<arg>
     ttm.addArgv(ARGV0); // pretend
     for(String arg: argv)
@@ -2847,28 +2778,29 @@ main(String[] argv)
             usage("Output file is not writable: "+outputfilename);
         }
         try {
-            ttm.setOutput(new PrintWriter(f,"UTF-8"),false);
+            ttm.setOutput(
+		new PrintWriter(new OutputStreamWriter(
+				    new FileOutputStream(f),UTF8),true),
+                false);
         }  catch (FileNotFoundException fnf) {
             usage("File not found: "+f);
-        }  catch (UnsupportedEncodingException  uee) {
-            usage("Internal error");
         }
     }
 
-    if(rsfilename == null) {
+    if(inputfilename == null) {
 	ttm.setInput(ttm.getStdin(),true);
     } else {
-        File f = new File(rsfilename);
+        File f = new File(inputfilename);
         if(!f.canRead()) {
-            usage("-Drsfile file is not readable: "+rsfilename);
+            usage("-Dinput file is not readable: "+inputfilename);
         }
         try {
-            ttm.setInput(new InputStreamReader(new FileInputStream(f), "UTF-8"), false);
+            ttm.setInput(
+		new InputStreamReader(new FileInputStream(f), UTF8),
+                false);
         }  catch (FileNotFoundException fnf) {
             usage("File not found: "+f);
-        }  catch (UnsupportedEncodingException  uee) {
-            usage("Internal error");
-        }
+	}
     }
 
     boolean stop = false;
@@ -2882,10 +2814,10 @@ main(String[] argv)
     // Now execute the executefile, if any
     if(!stop && executefilename != null) {
         try {
-            String text = readfile(executefilename,ttm.getCharset());
+            String text = readfile(executefilename);
             String result = ttm.scan(text);
             if(ttm.testFlag(FLAG_EXIT)) stop = true;
-            ttm.printstring(ttm.stdout,result,true);
+            ttm.printstring(ttm.stdout,result);
         } catch (IOException ioe) {
             usage("Cannot read -f file: "+ioe.getMessage());
         }

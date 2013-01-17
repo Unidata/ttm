@@ -8,7 +8,7 @@ comment,0,0,V residual=0 body=||
 [00] end: ##<testtn> => "functionbodyy4"
 [00] begin: #<pf>
 [00] end: #<pf> => ""
-[00] begin: ##<psr;reading line1;stderr>
+[00] begin: ##<psr;reading line1\n;stderr>
 reading line1
 [00] end: ##<psr> => "line1.line2"
 [00] begin: ##<rs>
