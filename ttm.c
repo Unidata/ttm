@@ -184,6 +184,7 @@ Constants
 /* TTM Flags */
 #define FLAG_EXIT  1
 #define FLAG_TRACE 2
+#define FLAG_BARE 4 /* Do not do startup initializations */
 
 /**************************************************/
 /* Error Numbers */
@@ -1133,15 +1134,20 @@ call(TTM* ttm, Frame* frame, utf32* body)
     unsigned int len;
     utf32* result;
     utf32* dst;
+    char crformat[16];
+    char crval[CREATELEN+1];
+    int crlen;
+
+    crformat[0] = NUL;
 
     /* Compute the size of the output */
     for(len=0,p=body;(c=*p++);) {
-        if(testMark(c,SEGMARK)) {
+        if(issegmark(c)) {
             unsigned int segindex = (unsigned int)(*p++);
             if(segindex < frame->argc)
                 len += strlen32(frame->argv[segindex]);
             /* else treat as empty string */
-        } else if(c == CREATE) {
+        } else if(iscreate(c)) {
             len += CREATELEN;
         } else
             len++;
@@ -1153,24 +1159,23 @@ call(TTM* ttm, Frame* frame, utf32* body)
     dst = result;
     dst[0] = NUL32; /* so we can use strcat */
     for(p=body;(c=*p++);) {
-        if(testMark(c,SEGMARK)) {
+        if(issegmark(c)) {
             unsigned int segindex = (unsigned int)(c & 0xFF);
             if(segindex < frame->argc) {
                 utf32* arg = frame->argv[segindex];
                 strcpy32(dst,arg);
                 dst += strlen32(arg);
             } /* else treat as null string */
-        } else if (c == CREATE) {
-            int len;
-            char crformat[16];
-            char crval[CREATELEN+1];
-            /* Construct the format string on the fly */
-            snprintf(crformat,sizeof(crformat),"%%0%dd",CREATELEN);
-            /* Construct the cr value */
-            ttm->crcounter++;
-            snprintf(crval,sizeof(crval),crformat,ttm->crcounter);
-            len = toString32(dst,crval,TOEOS);
-            dst += len;
+        } else if (iscreate(c)) {
+	    if(strlen(crformat) == 0) {
+                /* Construct the format string on the fly */
+                snprintf(crformat,sizeof(crformat),"%%0%dd",CREATELEN);
+                /* Construct the cr value */
+                ttm->crcounter++;
+                snprintf(crval,sizeof(crval),crformat,ttm->crcounter);
+            }
+            crlen = toString32(dst,crval,TOEOS);
+            dst += crlen;
         } else
             *dst++ = (char)c;
     }
@@ -1286,6 +1291,7 @@ ttm_cr(TTM* ttm, Frame* frame) /* Mark for creation */
     bodylen = strlen32(body);
     crstring = frame->argv[2];
     crlen = strlen32(crstring);
+
     if(crlen > 0) { /* search only if possible success */
         utf32* p;
         /* Search for occurrences of arg */
@@ -3400,6 +3406,7 @@ usage(const char* msg)
 "[-o file]"
 "[-i]"
 "[-V]"
+"[-q]"
 "[-X tag=value]"
 "[--]"
 "[arg...]");
@@ -3554,6 +3561,7 @@ setdebugflags(const char* flagstring)
     while((c=*p++)) {
 	switch (c) {
 	case 't': flags |= FLAG_TRACE;
+	case 'b': flags |= FLAG_BARE;
 	default: break;
 	}
     }
@@ -3585,6 +3593,7 @@ main(int argc, char** argv)
     int c;
     char* p;
     int flags;
+    int quiet = 0;
 
     if(argc == 1)
         usage(NULL);
@@ -3641,6 +3650,7 @@ main(int argc, char** argv)
             printf("ttm version: %s\n",VERSION);
             exit(0);
             break;
+        case 'q': quiet = 1; break;
         case '-':
             break;
         case '?':
@@ -3700,13 +3710,15 @@ main(int argc, char** argv)
     ttm->isstdin = isstdin;    
 
     defineBuiltinFunctions(ttm);
-    startupcommands(ttm);
-    /* Lock up all the currently defined functions */
-    lockup(ttm);
-
+    
     /* Define flags */
     flags = setdebugflags(debugargs);
     ttm->flags |= flags;
+
+    if(!testMark(ttm->flags,FLAG_BARE))
+      startupcommands(ttm);
+    /* Lock up all the currently defined functions */
+    lockup(ttm);
 
     /* Execute the -e strings in turn */
     for(i=0;eoptions[i]!=NULL;i++) {
@@ -3722,7 +3734,7 @@ main(int argc, char** argv)
             goto done;
     }
 
-    /* Now execute the executefile, if any, and discard output */
+    /* Now execute the executefile, if any, and if -q, discard output */
     if(executefilename != NULL) {
         readinput(ttm,executefilename,ttm->buffer);
         scan(ttm);
@@ -3735,6 +3747,10 @@ main(int argc, char** argv)
         for(;;) {
             if(!readbalanced(ttm)) break;
             scan(ttm);
+            /* make sure passive is null terminated */
+            *ttm->buffer->passive = NUL32;
+            if(!quiet && ttm->buffer->passive > 0)
+	        printbuffer(ttm);
             if(ttm->flags & FLAG_EXIT)
                 goto done;
         }
@@ -3742,7 +3758,8 @@ main(int argc, char** argv)
 
 done:
     /* Dump any output left in the buffer */
-    printbuffer(ttm);
+    if(!quiet && ttm->buffer->passive > 0)
+        printbuffer(ttm);
 
     exitcode = ttm->exitcode;
 

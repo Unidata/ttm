@@ -1,15 +1,15 @@
-There are two versions of the ttm interpreter.
-One is written in C and one is written Java.
+There are three versions of the ttm interpreter.  One is
+written in C, one is written Java, and one is written in
+Python.
 
 -------------
 C Interpreter
 -------------
-The C interpreter is deliberately contained
-in a single, self contained C file: ttm.c.
-A Makefile exists to create ttm.ex
-At the beginning of ttm.c, there are some directives
-that control features of the interpreter.
-Currently the only directives are as follows:
+The C interpreter is deliberately contained in a single,
+self contained C file: ttm.c.  A Makefile exists to create
+ttm.ex At the beginning of ttm.c, there are some directives
+that control features of the interpreter.  Currently the
+only directives are as follows:
 1. #define HAVE_MEMMOVE - define this if your C compiler/library
    supports the memmove() function, undefine otherwise.
 
@@ -19,6 +19,7 @@ You may also need to change the following lines in the Makefile.
 3. CCDEBUG - to set the optimization and debug levels
 
 Otherwise, compiling is as simple as "${CC} -o ttm ttmc."
+where ${CC} is your local C compiler.
 
 Windows Support
 ---------------
@@ -30,9 +31,18 @@ standalone. Any help in fixing this would be Appreciated.
 -------------
 Java Interpreter
 -------------
-The Java implementation is contained
-in the single file src/main/java/ucar/ttm/TTM.java.
-An ant build.xml file exists to compile it.
-The Java version is noticably slower than the C version.
+The Java implementation is contained in the single file
+src/main/java/ucar/ttm/TTM.java.  An ant build.xml file
+exists to compile it.  The Java version is noticably slower
+than the C version.
+
+-------------
+Python Interpreter
+-------------
+The python implementation is contained in the single file
+ttm.py. It currently used python version 2.6.7; it has not
+been tested against python 3.0 yet.  It does not need to be
+compiled per-se, just executed. It can be tested using the
+command "make pycheck".
 
 

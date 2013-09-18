@@ -1,4 +1,4 @@
-##<ps;##<ttm;info;name;comment>>
+##<ps;xx##<ttm;info;name;comment>yy>
 #<comment;##<ps;##<ttm;info;name;def;comment>>>
 #<ds;greek;<ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ>>
 #<ds;kanji;龥>
@@ -73,8 +73,8 @@
 ##<ttm;info;name;testclass>
 ##<cn;100;testclass>
 ##<ttm;info;name;testclass>
-##<ttm;info;name;testclass>
 ##<rrp;testclass>
+##<ttm;info;name;testclass>
 ##<tcl;digits;testclass;digit found;digit not found>
 ##<cn;100;testclass>
 ##<classes>
@@ -102,7 +102,7 @@
 ##<ctime;135258979000>
 #<es;#<zlc;##<names>>>
 #<names;all>
-#<ds;testcr;abcxxdef>
+#<ds;testcr;abcxxdefxx>
 #<cr;testcr;xx>
 ##<ttm;info;name;testcr>
 ##<testcr>

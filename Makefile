@@ -1,3 +1,4 @@
+EXPORT=f:/git/export
 .PHONEY: check
 
 CC=gcc
@@ -20,8 +21,21 @@ TESTPROG=-p test.ttm
 TESTARGS=a b c
 TESTRFLAG=-f test.rs
 TESTCMD=./ttm ${TESTPROG} ${TESTRFLAG} ${TESTARGS}
+PYCMD=python ttm.py -dT ${TESTPROG} ${TESTRFLAG} ${TESTARGS}
 
 check:: ttm.exe
 	rm -f ./test.output
 	${TESTCMD} >& ./test.output
 	diff -w ./test.baseline ./test.output
+
+pycheck:: ttm.py
+	rm -f ./test.output
+	${PYCMD} >& ./test.output
+	diff -w ./test.baseline ./test.output
+
+git::
+	${SH} ./git.sh
+
+install::
+	rm -fr ${EXPORT}/ttm/*
+	cp -fr ./git/ttm ${EXPORT}

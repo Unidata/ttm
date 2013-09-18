@@ -82,7 +82,7 @@
           fork="true"
 	  output="${test.output}"
           failonerror="true">
-	<jvmarg value="-Ddebug=T"/>
+	<jvmarg value="-Ddebug=t"/>
 	<jvmarg value="-Dprogram=${test.program}"/>
 	<jvmarg value="-Dinput=${test.input}"/>
 	<arg value="a"/>

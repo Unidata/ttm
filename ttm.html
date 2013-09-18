@@ -12,6 +12,7 @@ ttm
 [-o <i>file</i>]
 [-r <i>rsfile</i>]
 [-V]
+[-q]
 [-X <i>tag=value</i>]
 [--]
 [<i>arg...</i>]
@@ -35,6 +36,12 @@ Except where indicated, all flags may be repeated multiple times.
 <dt><b>-d <i>string</i></b><br>
 <dd>
 Set a variety of debug options as encoded in the string.
+Currently, the following debug flags are defined.
+  <ul>
+  <li> 't': turn on tracing.
+  <li> 'b': suppress execution of ttm
+            startup commands.
+  </ul>
 <p>
 <dt><b>-e <i>string</i></b><br>
 <dd>
@@ -76,6 +83,10 @@ specified by the -f flag.
 <dt><b>-V</b><br>
 <dd>
 Output the version number of ttm and then exit.
+<dt><b>-q</b><br>
+<dd>
+Suppress the output remaining after
+scanning the -f file.
 <p>
 <dt><b>-X <i>tag=value</i></b><br>
 <dd>
@@ -126,8 +137,16 @@ The options are encoded as follows.
 <li>-Dverbose &mdash equivalent to the C <i>-V</i> flag.
 <li>-DX=string &mdash equivalent to the C <i>-X</i> flag. The string
 is of the form <tag>:<value>,<tag>:<value>...
+1<li>-Ddebug=string &mdash equivalent to the C <i>-d</i> flag.
 </ul>
 </ul>
+
+<h2>Python Command Line Format</h2>
+The python invocation of ttm is essentially
+the same as the C command line.
+<pre>
+    python ttm.py &lt;command line arguments&gt;
+</pre>
 
 <h2>OVERALL OPERATION</h2>
 The <b>ttm</b> macro processor starts
@@ -143,9 +162,14 @@ is sent to the file specified by the <i>-o</i> option. If not specified,
 the output is sent to standard output.
 <p>
 Finally, if the -i flag is specified, then the interpreter goes
-into a read-eval loop. It reads from the standard input,
+into a read-eval loop. It reads "balanced" strings
+from the standard input,
 scans the input and repeats.
 If no <i>-i</i> is specified, the interpreter exits.
+<p>
+The term balanced means that input is read until
+all instances of '&lt;' have a matching '&gt;'. Once balanced,
+input reading will stop at the currently defined EOL meta-character.
 <p>
 Any arguments after the file name are provided to ttm using the
 <i>#&lt;argv;i&gt;</i> function.
@@ -154,7 +178,7 @@ It is assumed that TTM is given a text file (via e.g. -f)
 containing some combination
 of ordinary text and TTM function calls (i.e. invocations).
 The text is scanned character by character. Any ordinary text is passed
-to the output unchanged (except when escaped).
+to the output unchanged (taking escapes into consideration).
 If a TTM function is encountered, it is collected and executed.
 
 <h2>SYNTAX AND SEMANTICS</h2>
@@ -232,7 +256,7 @@ It is possible to escape one or more characters using either of two
 conventions.
 <ul>
 <li> &lt;...&gt; &ndash; escape multiple characters.
-<li> @ &ndash; escape a single character
+<li> \ &ndash; escape a single character.
 </ul>
 <p>
 If a string is enclosed in &lt;...&gt;, then it is scanned 
@@ -242,8 +266,8 @@ of &lt;...&gt;, then they are scanned but the '&lt;' and '&gt;' are not removed.
 The brackets must balance: the number of '&lt;' characters
 must equal the number of '&gt;' characters.
 
-The '@' escape convention causes the interpreter to pass as-is the character
-after the '@'. The leading '@' is left if it within a &lt;...&gt;
+The '\' escape convention causes the interpreter to pass as-is the character
+after the '\'. The leading '\' is left if it within a &lt;...&gt;
 escape sequence, otherwise it is removed. One use is to
 allow unbalanced occurrences of '&lt;' or '&gt;' characters
 [Note: in the reference implementation, '@' was changed to '\'].
@@ -301,8 +325,8 @@ However, the following general changes to TTM should be noted.
 <p>
 <li> The escape character is changed from '@' to '\'.
 <p>
-<li> The meta character (end of input) is changed from ''' (i.e. single quote)
-to '\n' (i.e. linefeed).
+<li> The end of input meta character is changed from ''' (i.e. single quote)
+to '\n' (i.e. newline).
 <p>
 <li>
 Escape handling is slightly different and adheres more closely
@@ -330,8 +354,11 @@ Otherwise, strings may contain any legal utf-8 multi-byte character.
 This allows for inclusion of utf-8 codepoints, but only limited validation
 is performed to see if the string is truly utf-8.
 <p>
-Internally, all characters are represented as 32-bit UTF characters.
+Internally, and in the C implementation,
+all characters are represented as 32-bit UTF characters.
 This wastes some space, but makes processing simpler.
+For Python and Java, characters are represented internally
+in UTF-16 because they provide native support for that format.
 <p>
 </ol>
 
@@ -534,15 +561,13 @@ will turn off tracing on all specific function.
 This was changed to an optional allow a second argument that
 specifies sending the output to either "stdout"
 or "stderr". If missing, then stdout is assumed.
-Additionally, in order to avoid spoofing, all control
-characters except newline are elided and a final newline is forced.
 
 <p>
 <b><u>rs</u></b><br>
 <b>Specification: </b>rs,0,0,S<br>
 <b>Invocation: </b>#&lt;rs&gt;</br>
-In order to avoid spoofing, the string 'ttm>' is printed
-before reading.
+Read a string of characters until either EOF
+or the defined "end-of-input" character is reached.
 
 <p>
 <b><u>rs</u></b><br>
@@ -706,6 +731,7 @@ http://www.apache.org/licenses/LICENSE-2.0.
 <ul>
 <li>C version 1.0
 <li>Java version 1.0
+<li>Python version 1.0
 </ul>
 
 <h2>ACKNOWLEDGEMENTS</h2>
@@ -734,8 +760,11 @@ California Institute of Technology, Willis H. Booth Computing Center, Programmin
 
 <h2>CHANGELOG</h2>
 <table>
-<tr><td>15 November 2012<td>&mdash;
-    <td>Version 1.0 release.
+<tr><td>01 Oct. 2013<td>&mdash;
+    <td>Added python implementation.
+<tr><td>15 Nov. 2012<td>&mdash;
+    <td>Version 1.0 release with C and Java
+        implementations.
 </table>
 
 </body>

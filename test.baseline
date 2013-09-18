@@ -1,5 +1,5 @@
-comment,0,0,V residual=0 body=||
-def,0,3,V residual=0 body=|##<ds;^01;<^03>>##<ss;^01;^02>|
+xxcomment,0,0,V residual=0 body=||
+yydef,0,3,V residual=0 body=|##<ds;^01;<^03>>##<ss;^01;^02>|
 comment,0,0,V residual=0 body=||
 [00] begin: ##<testtn;y1>
 [00] end: ##<testtn> => "functionbodyy1"
@@ -133,8 +133,8 @@ testclass,0,0,V residual=3 body=|01Ab5|
 b5
 testclass,0,0,V residual=5 body=|01Ab5|
 
-testclass,0,0,V residual=5 body=|01Ab5|
 
+testclass,0,0,V residual=0 body=|01Ab5|
 
 digit found
 01Ab5
@@ -173,9 +173,9 @@ Sat Nov 10 16:23:10 2012
 abs,ad,ap,argc,argv,cc,ccl,cf,classes,cm,cn,comment,cp,cr,cs,ctime,dcl,def,dncl,ds,dv,dvr,ecl,eos,eq,eq?,es,exit,flip,gn,gt,gt?,include,isc,lf,lt,lt?,mu,names,ndf,norm,pf,ps,psr,rrp,rs,sc,scl,scn,sn,ss,su,tcl,tf,time,tn,ttm,uf,xtime,zlc,zlcp
 
 
-testcr,0,0,V residual=0 body=|abc^00def|
+testcr,0,0,V residual=0 body=|abc^00def^00|
 
-abc0001def
+abc0001def0001
 
 a<b;c>
 testcp,0,0,V residual=7 body=|a<b;c>;d;<;>|
