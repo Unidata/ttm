@@ -112,15 +112,18 @@ typedef int utf32; /* 32-bit utf char type; signed is ok
 #endif
 
 /**************************************************/
+/* This function is designed to only move data "upward".
+That is, dst might point int the range src,src+len.
+*/
 static void
 makespace(utf32* dst, utf32* src, unsigned int len)
 {
 #ifdef HAVE_MEMMOVE
     memmove((void*)dst,(void*)src,len*sizeof(utf32));
 #else   
-    src += len;
-    dst += len;
-    for(;len>0;len--) *{dst-- = *src--;}
+    src += len-1;
+    dst += len-1;
+    while(len-->0) {*dst-- = *src--;}
 #endif
 }
 
